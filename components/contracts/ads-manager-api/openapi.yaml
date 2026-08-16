@@ -4,8 +4,10 @@ info:
   version: 1.0.0
   description: >
     API specification for ads-manager. Covers the Google Ads Connection
-    change: OAuth connection flow and CRUD over connected Google Ads
-    accounts. Single-user application — no authentication layer.
+    change (OAuth connection flow and CRUD over connected Google Ads
+    accounts) and the Campaign Performance Dashboard change (cached
+    campaign metrics per account/date range). Single-user application —
+    no authentication layer.
 
 servers:
   - url: /api/v1
@@ -16,6 +18,8 @@ tags:
     description: Google OAuth connection flow for Google Ads accounts.
   - name: Accounts
     description: Connected Google Ads accounts.
+  - name: Campaigns
+    description: Campaign performance metrics for a connected account.
 
 paths:
   # NOTE: Health check endpoints (/health, /readiness, /liveness) are NOT defined here.
@@ -196,6 +200,121 @@ paths:
                       code: ACCOUNT_NOT_FOUND
                       message: Conta não encontrada
 
+  /accounts/{id}/campaigns:
+    get:
+      operationId: listCampaigns
+      summary: List a connected account's campaigns with performance metrics
+      description: >
+        Returns the campaigns for a connected Google Ads account over the
+        requested date range, with key performance metrics computed from raw
+        values (impressions, clicks, cost, conversions, conversion value).
+        Results are served from a 15-minute cache unless `refresh=true` is
+        passed. If the Google Ads API fails but a cache entry exists for this
+        account + date range (even expired), the cached data is returned with
+        `stale: true`.
+      tags:
+        - Campaigns
+      parameters:
+        - name: id
+          in: path
+          description: Internal id of the connected account.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: range
+          in: query
+          description: >
+            Date range preset. `custom` requires `start` and `end` to also be
+            provided.
+          required: false
+          schema:
+            $ref: '#/components/schemas/CampaignDateRange'
+        - name: start
+          in: query
+          description: >
+            Start date (inclusive), required when `range=custom`. Ignored
+            otherwise.
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: >
+            End date (inclusive), required when `range=custom`. Ignored
+            otherwise.
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: refresh
+          in: query
+          description: When true, bypasses the cache and forces a fresh fetch.
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Campaigns retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListCampaignsResponse'
+        '400':
+          description: Invalid or missing date range parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidDateRange:
+                  summary: start is after end, or custom range missing start/end
+                  value:
+                    error:
+                      code: INVALID_DATE_RANGE
+                      message: Data final deve ser depois da data inicial
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accountNotFound:
+                  summary: Account not found
+                  value:
+                    error:
+                      code: ACCOUNT_NOT_FOUND
+                      message: Conta não encontrada
+        '409':
+          description: Account needs to be reconnected before its data can be viewed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accountNeedsReconnect:
+                  summary: Account status is needs_reconnect
+                  value:
+                    error:
+                      code: ACCOUNT_NEEDS_RECONNECT
+                      message: Esta conta precisa ser reconectada antes de ver os dados
+        '502':
+          description: Failed to fetch campaign data and no cache available to fall back to
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                googleAdsApiError:
+                  summary: Google Ads API error and no cache available
+                  value:
+                    error:
+                      code: GOOGLE_ADS_API_ERROR
+                      message: Não foi possível carregar os dados desta conta agora. Tente novamente.
+
 components:
   schemas:
     AccountStatus:
@@ -333,6 +452,119 @@ components:
           items:
             $ref: '#/components/schemas/ConnectedAccount'
 
+    CampaignDateRange:
+      type: string
+      description: >
+        Date range preset for campaign metrics. `custom` requires `start` and
+        `end` query parameters.
+      enum:
+        - 7d
+        - 30d
+        - 90d
+        - custom
+
+    CampaignStatus:
+      type: string
+      description: Campaign status as reported by the Google Ads API.
+      enum:
+        - ENABLED
+        - PAUSED
+        - REMOVED
+
+    Campaign:
+      type: object
+      description: >
+        A campaign's performance metrics for the requested date range.
+        Derived metrics (ctr, avg_cpc, conversion_rate, cost_per_conversion,
+        roas) are computed from raw values (impressions, clicks, cost,
+        conversions, conversion value), not stored directly.
+      required:
+        - campaign_id
+        - name
+        - status
+        - impressions
+        - clicks
+        - ctr
+        - avg_cpc
+        - cost
+        - conversions
+        - conversion_rate
+        - cost_per_conversion
+        - roas
+        - budget
+      properties:
+        campaign_id:
+          type: string
+          description: Google Ads Campaign ID.
+          example: '111222333'
+        name:
+          type: string
+          example: Campanha Institucional
+        status:
+          $ref: '#/components/schemas/CampaignStatus'
+        impressions:
+          type: integer
+          example: 12345
+        clicks:
+          type: integer
+          example: 234
+        ctr:
+          type: number
+          description: Click-through rate (clicks / impressions). 0 when impressions is 0.
+          example: 0.019
+        avg_cpc:
+          type: number
+          description: Average cost per click (cost / clicks). 0 when clicks is 0.
+          example: 1.25
+        cost:
+          type: number
+          description: Total cost for the period, in account currency (converted from micros).
+          example: 292.5
+        conversions:
+          type: number
+          example: 8
+        conversion_rate:
+          type: number
+          description: Conversions / clicks. 0 when clicks is 0.
+          example: 0.034
+        cost_per_conversion:
+          type: number
+          description: Cost / conversions. 0 when conversions is 0.
+          example: 36.56
+        roas:
+          type: number
+          description: Return on Ad Spend (conversion value / cost). 0 when cost is 0.
+          example: 3.2
+        budget:
+          type: number
+          nullable: true
+          description: Daily budget in account currency (converted from micros), if available.
+          example: 50.0
+
+    ListCampaignsResponse:
+      type: object
+      required:
+        - campaigns
+        - fetched_at
+        - stale
+      properties:
+        campaigns:
+          type: array
+          description: Campaigns ordered by cost, descending.
+          items:
+            $ref: '#/components/schemas/Campaign'
+        fetched_at:
+          type: string
+          format: date-time
+          description: >
+            ISO8601 timestamp of the last successful fetch from the Google
+            Ads API for this account + date range.
+        stale:
+          type: boolean
+          description: >
+            True when the Google Ads API fetch failed and this data comes
+            from an expired cache entry.
+
     Error:
       type: object
       required:
@@ -343,13 +575,16 @@ components:
           type: string
           description: >
             Machine-readable error code. One of: INVALID_STATE, OAUTH_DENIED,
-            ACCOUNT_NOT_FOUND, ALREADY_CONNECTED, GOOGLE_ADS_API_ERROR.
+            ACCOUNT_NOT_FOUND, ALREADY_CONNECTED, GOOGLE_ADS_API_ERROR,
+            INVALID_DATE_RANGE, ACCOUNT_NEEDS_RECONNECT.
           enum:
             - INVALID_STATE
             - OAUTH_DENIED
             - ACCOUNT_NOT_FOUND
             - ALREADY_CONNECTED
             - GOOGLE_ADS_API_ERROR
+            - INVALID_DATE_RANGE
+            - ACCOUNT_NEEDS_RECONNECT
         message:
           type: string
           description: Human-readable error message.

@@ -114,13 +114,13 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 ## Implementation State
 
-- **Current Phase:** Aguardando aprovação deste plano
-- **Status:** pending
+- **Current Phase:** Phase 3 (Server)
+- **Status:** in_progress
 
 ### Completed Phases
 
-- [ ] Phase 1: Database
-- [ ] Phase 2: Contract
+- [x] Phase 1: Database
+- [x] Phase 2: Contract
 - [ ] Phase 3: Server
 - [ ] Phase 4: Webapp
 - [ ] Phase 5: Integration Testing
@@ -128,7 +128,13 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 ### Actual Files Changed
 
-Nenhum ainda.
+**Phase 1:**
+- `components/databases/ads-manager-db/migrations/002_campaign_metrics_cache.sql`
+- `components/databases/ads-manager-db/README.md` — schema docs atualizados
+- `components/servers/ads-manager-server/src/dal/campaign_metrics_cache/` — DAL (upsert, find por conta+período)
+
+**Phase 2:**
+- `components/contracts/ads-manager-api/openapi.yaml` — endpoint `GET /accounts/{id}/campaigns` adicionado (aditivo, 5 endpoints existentes intactos), novos códigos de erro no enum compartilhado
 
 ### Blockers
 

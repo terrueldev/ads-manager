@@ -41,6 +41,29 @@ Google Ads accounts connected via OAuth (see the `google-ads-connection` change 
 
 Indexes: `idx_connected_accounts_customer_id` (unique btree on `google_customer_id`).
 
+### `campaign_metrics_cache`
+
+Cached snapshot of a Google Ads campaign's metrics for a connected account and date range (see the `campaign-performance-dashboard` change SPEC). Populated/refreshed by `GET /accounts/:id/campaigns`; one row per connected account + campaign + date range.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | Primary key, `gen_random_uuid()` |
+| `connected_account_id` | `UUID` | FK to `connected_accounts.id`, `ON DELETE CASCADE` |
+| `google_campaign_id` | `VARCHAR(32)` | Google Ads Campaign ID |
+| `campaign_name` | `VARCHAR(255)` | Campaign display name from Google Ads |
+| `status` | `VARCHAR(32)` | `ENABLED` \| `PAUSED` \| `REMOVED` (Google Ads API values) |
+| `date_range_start` | `DATE` | Inclusive start of the cached period |
+| `date_range_end` | `DATE` | Inclusive end of the cached period |
+| `impressions` | `BIGINT` | Default `0` |
+| `clicks` | `BIGINT` | Default `0` |
+| `cost_micros` | `BIGINT` | Cost in micros (1 unit = 1,000,000 micros); default `0` |
+| `conversions` | `NUMERIC` | Default `0` |
+| `conversions_value` | `NUMERIC` | Default `0` |
+| `budget_micros` | `BIGINT` | Nullable; campaign daily budget in micros |
+| `fetched_at` | `TIMESTAMPTZ` | When this row was last fetched from the Google Ads API |
+
+Indexes: `uq_campaign_metrics_cache_account_campaign_range` (unique btree on `connected_account_id, google_campaign_id, date_range_start, date_range_end`).
+
 ## Available Operations
 
 | Prompt | Description |
