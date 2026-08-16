@@ -4,3 +4,4 @@ node_modules/
 dist/
 *.log
 sdd/.techpacks/
+.claude/settings.local.json.backup
