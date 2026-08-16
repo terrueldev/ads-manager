@@ -3,12 +3,15 @@
 // Ads adapters it builds from Config) — see src/controller/create_controller.ts.
 import type { Logger } from './logger';
 import type {
+  CampaignMetricsCacheEntry,
   ConnectedAccount,
   ConnectedAccountStatus,
   CreateConnectedAccountInput,
   CustomerMetadata,
+  FetchGoogleAdsCampaignMetricsResult,
   OAuthTokens,
   PendingCustomerTokens,
+  RawCampaignMetrics,
 } from './definitions';
 
 export type Dependencies = Readonly<{
@@ -55,4 +58,35 @@ export type Dependencies = Readonly<{
       readonly grantedScopes: string;
     }>
   ) => Promise<ConnectedAccount | null>;
+
+  // --- Campaign metrics cache (DAL, bound to the db connection by the Operator; see
+  // src/dal/campaign_metrics_cache) ---
+  readonly findCampaignMetricsCache: (
+    accountId: string,
+    dateRangeStart: string,
+    dateRangeEnd: string
+  ) => Promise<readonly CampaignMetricsCacheEntry[]>;
+  readonly upsertCampaignMetricsCache: (
+    input: Readonly<{
+      readonly accountId: string;
+      readonly dateRangeStart: string;
+      readonly dateRangeEnd: string;
+    }> &
+      RawCampaignMetrics
+  ) => Promise<void>;
+
+  // --- Google Ads API: campaign metrics (src/controller/google_ads/create_google_ads_client.ts).
+  // Returns a discriminated result (rather than throwing) so fetchCampaignMetrics can decide,
+  // without a try/catch, whether to call handleTokenRefreshFailure (auth_failure) or fall back to
+  // cache (generic_failure) — see SPEC.md's Algorithms/Business Logic steps 5-6. ---
+  readonly fetchCampaignMetricsFromGoogleAds: (
+    args: Readonly<{
+      readonly accountId: string;
+      readonly dateRangeStart: string;
+      readonly dateRangeEnd: string;
+    }>
+  ) => Promise<FetchGoogleAdsCampaignMetricsResult>;
+
+  // --- Clock, overridable in tests for deterministic TTL/date-range assertions ---
+  readonly now: () => Date;
 }>;

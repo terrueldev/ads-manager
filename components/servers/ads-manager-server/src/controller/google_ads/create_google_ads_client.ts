@@ -7,7 +7,7 @@
 // `parseAccessibleCustomerIds` (src/model/use-cases/parse_accessible_customer_ids.ts) so that
 // logic stays independently unit-tested without mocking this package at all.
 import { GoogleAdsApi } from 'google-ads-api';
-import { parseAccessibleCustomerIds, type CustomerMetadata } from '../../model';
+import { parseAccessibleCustomerIds, type CampaignStatus, type CustomerMetadata, type RawCampaignMetrics } from '../../model';
 
 export type GoogleAdsClientConfig = Readonly<{
   readonly clientId: string;
@@ -18,10 +18,134 @@ export type GoogleAdsClientConfig = Readonly<{
 export type GoogleAdsClientAdapter = Readonly<{
   readonly listAccessibleCustomerIds: (refreshToken: string) => Promise<readonly string[]>;
   readonly fetchCustomerMetadata: (customerId: string, refreshToken: string) => Promise<CustomerMetadata>;
+  readonly fetchCampaignMetrics: (
+    customerId: string,
+    refreshToken: string,
+    dateRangeStart: string,
+    dateRangeEnd: string
+  ) => Promise<readonly RawCampaignMetrics[]>;
 }>;
+
+// Thrown by fetchCampaignMetrics (instead of a plain Error) when the underlying failure is an
+// authentication/authorization problem with the refresh token itself, rather than a transient or
+// rate-limit failure — see isGoogleAdsAuthFailure below for how the two are told apart. This is
+// the first adapter method that needs the distinction (campaign-performance-dashboard is the
+// first consumer to wire handleTokenRefreshFailure — see SPEC.md > Algorithms/Business Logic,
+// step 5): only an auth failure should flip the account to needs_reconnect; a rate limit or a
+// transient Google outage must not.
+export class GoogleAdsAuthenticationError extends Error {
+  constructor(message: string, readonly cause?: unknown) {
+    super(message);
+    this.name = 'GoogleAdsAuthenticationError';
+  }
+}
+
+// Loose shape of a google-ads-api `errors.GoogleAdsFailure` (thrown by Customer#query on a
+// GoogleAdsError response — see google-ads-api's customer.js). Each entry's error_code has
+// exactly one non-null key identifying the failure category; authentication_error/
+// authorization_error are Google's categories for "this credential can no longer be used"
+// (revoked/expired/insufficient-scope), as opposed to e.g. quota_error (rate limit) or
+// internal_error (transient).
+type GoogleAdsFailureLike = Readonly<{
+  readonly errors?: ReadonlyArray<
+    Readonly<{
+      readonly error_code?: Readonly<{
+        readonly authentication_error?: unknown;
+        readonly authorization_error?: unknown;
+      }>;
+    }>
+  >;
+}>;
+
+const isAuthRelatedGoogleAdsFailure = (err: unknown): boolean => {
+  const failure = err as GoogleAdsFailureLike | undefined;
+  return Boolean(
+    failure?.errors?.some(
+      (e) => e.error_code?.authentication_error != null || e.error_code?.authorization_error != null
+    )
+  );
+};
+
+// A revoked/expired refresh token can also fail earlier than any GoogleAdsFailure — at the OAuth
+// token-exchange step inside google-auth-library, before the Google Ads API is even reached.
+// google-auth-library surfaces that as a Gaxios-style error with response.data.error ===
+// 'invalid_grant' (the standard OAuth2 error code for a bad/revoked/expired refresh token).
+const isInvalidGrantError = (err: unknown): boolean => {
+  const gaxiosError = err as Readonly<{ response?: { data?: { error?: string } } }> | undefined;
+  return gaxiosError?.response?.data?.error === 'invalid_grant';
+};
+
+export const isGoogleAdsAuthFailure = (err: unknown): boolean =>
+  isAuthRelatedGoogleAdsFailure(err) || isInvalidGrantError(err);
 
 const CUSTOMER_METADATA_QUERY =
   'SELECT customer.descriptive_name, customer.currency_code, customer.time_zone FROM customer LIMIT 1';
+
+// GAQL for FR3's campaign performance table. campaign_budget.amount_micros assumes a per-campaign
+// budget (SPEC.md > Gaps & Assumptions flags shared budget groups as a follow-up if the test
+// account uses one — google-ads-api still returns the linked budget's amount here either way).
+const buildCampaignMetricsQuery = (dateRangeStart: string, dateRangeEnd: string): string =>
+  `SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros, ` +
+  `metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value ` +
+  `FROM campaign WHERE segments.date BETWEEN '${dateRangeStart}' AND '${dateRangeEnd}'`;
+
+const VALID_CAMPAIGN_STATUSES: readonly CampaignStatus[] = ['ENABLED', 'PAUSED', 'REMOVED'];
+
+// Any campaign.status the API returns outside the 3 tracked by the cache/contract (e.g. an
+// UNKNOWN/UNSPECIFIED sentinel) falls back to PAUSED — "not actively spending, not deleted" is
+// the safer default of the three for a status the UI has no dedicated treatment for.
+const toCampaignStatus = (status: string | null | undefined): CampaignStatus =>
+  status !== null && status !== undefined && (VALID_CAMPAIGN_STATUSES as readonly string[]).includes(status)
+    ? (status as CampaignStatus)
+    : 'PAUSED';
+
+const toNumber = (value: string | number | null | undefined): number => {
+  if (value === null || value === undefined) {
+    return 0;
+  }
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+// Loose shape of the GAQL row returned for buildCampaignMetricsQuery — google-ads-api's
+// IGoogleAdsRow types every resource/segment field as optional, mirroring fetchCustomerMetadata's
+// row.customer? handling above.
+type CampaignMetricsRow = Readonly<{
+  readonly campaign?: Readonly<{
+    readonly id?: string | number | null;
+    readonly name?: string | null;
+    readonly status?: string | null;
+  }> | null;
+  readonly campaign_budget?: Readonly<{ readonly amount_micros?: string | number | null }> | null;
+  readonly metrics?: Readonly<{
+    readonly impressions?: string | number | null;
+    readonly clicks?: string | number | null;
+    readonly cost_micros?: string | number | null;
+    readonly conversions?: string | number | null;
+    readonly conversions_value?: string | number | null;
+  }> | null;
+}>;
+
+const mapRowToRawCampaignMetrics = (row: CampaignMetricsRow): RawCampaignMetrics => {
+  const campaignId = row.campaign?.id;
+  if (campaignId === null || campaignId === undefined) {
+    throw new Error('fetchCampaignMetrics: campaign row missing campaign.id');
+  }
+  return {
+    googleCampaignId: String(campaignId),
+    campaignName: row.campaign?.name ?? '',
+    status: toCampaignStatus(row.campaign?.status),
+    impressions: toNumber(row.metrics?.impressions),
+    clicks: toNumber(row.metrics?.clicks),
+    costMicros: toNumber(row.metrics?.cost_micros),
+    conversions: toNumber(row.metrics?.conversions),
+    conversionsValue: toNumber(row.metrics?.conversions_value),
+    budgetMicros:
+      row.campaign_budget?.amount_micros === null || row.campaign_budget?.amount_micros === undefined
+        ? null
+        : toNumber(row.campaign_budget.amount_micros),
+  };
+};
 
 export const createGoogleAdsClientAdapter = (config: GoogleAdsClientConfig): GoogleAdsClientAdapter => {
   const client = new GoogleAdsApi({
@@ -55,5 +179,29 @@ export const createGoogleAdsClientAdapter = (config: GoogleAdsClientConfig): Goo
     };
   };
 
-  return { listAccessibleCustomerIds, fetchCustomerMetadata };
+  const fetchCampaignMetrics = async (
+    customerId: string,
+    refreshToken: string,
+    dateRangeStart: string,
+    dateRangeEnd: string
+  ): Promise<readonly RawCampaignMetrics[]> => {
+    const rawCustomerId = customerId.replace(/-/g, '');
+    const customer = client.Customer({ customer_id: rawCustomerId, refresh_token: refreshToken });
+    try {
+      const rows = await customer.query<readonly CampaignMetricsRow[]>(
+        buildCampaignMetricsQuery(dateRangeStart, dateRangeEnd)
+      );
+      return rows.map(mapRowToRawCampaignMetrics);
+    } catch (err) {
+      if (isGoogleAdsAuthFailure(err)) {
+        throw new GoogleAdsAuthenticationError(
+          `Google Ads authentication failed for customer ${customerId}`,
+          err
+        );
+      }
+      throw err;
+    }
+  };
+
+  return { listAccessibleCustomerIds, fetchCustomerMetadata, fetchCampaignMetrics };
 };

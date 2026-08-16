@@ -91,12 +91,12 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 ## Tests
 
 ### Unit Tests
-- [ ] `test_calculate_derived_metrics_from_raw_values`
-- [ ] `test_calculate_derived_metrics_handles_zero_clicks_and_zero_conversions`
-- [ ] `test_cache_valid_within_ttl_skips_api_call`
-- [ ] `test_refresh_true_bypasses_ttl`
-- [ ] `test_auth_failure_triggers_handle_token_refresh_failure`
-- [ ] `test_generic_failure_does_not_trigger_reconnect`
+- [x] `test_calculate_derived_metrics_from_raw_values`
+- [x] `test_calculate_derived_metrics_handles_zero_clicks_and_zero_conversions`
+- [x] `test_cache_valid_within_ttl_skips_api_call`
+- [x] `test_refresh_true_bypasses_ttl`
+- [x] `test_auth_failure_triggers_handle_token_refresh_failure`
+- [x] `test_generic_failure_does_not_trigger_reconnect`
 
 ### Integration Tests
 - [ ] `test_fetch_success_writes_cache_to_postgres`
@@ -114,14 +114,14 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 ## Implementation State
 
-- **Current Phase:** Phase 3 (Server)
+- **Current Phase:** Phase 4 (Webapp)
 - **Status:** in_progress
 
 ### Completed Phases
 
 - [x] Phase 1: Database
 - [x] Phase 2: Contract
-- [ ] Phase 3: Server
+- [x] Phase 3: Server
 - [ ] Phase 4: Webapp
 - [ ] Phase 5: Integration Testing
 - [ ] Phase 6: Review
@@ -135,6 +135,19 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 **Phase 2:**
 - `components/contracts/ads-manager-api/openapi.yaml` — endpoint `GET /accounts/{id}/campaigns` adicionado (aditivo, 5 endpoints existentes intactos), novos códigos de erro no enum compartilhado
+
+**Phase 3:**
+- `components/servers/ads-manager-server/src/model/definitions/campaign_metrics.ts` — novos tipos de domínio (Campaign, raw/derived metrics, cache entry, resultado do adapter)
+- `components/servers/ads-manager-server/src/model/use-cases/calculate_derived_metrics.ts` (+ `.test.ts`) — função pura de cálculo (ctr, avg_cpc, conversion_rate, cost_per_conversion, roas), micros→moeda, divisão por zero tratada
+- `components/servers/ads-manager-server/src/model/use-cases/fetch_campaign_metrics.ts` (+ `.test.ts`) — orquestração dos 7 passos (validação de conta/período, cache/TTL, fetch, upsert, fallback, `handleTokenRefreshFailure`)
+- `components/servers/ads-manager-server/src/model/dependencies.ts`, `src/model/definitions/index.ts`, `src/model/use-cases/index.ts`, `src/model/use-cases/test_helpers/mock_dependencies.ts` — novas dependências (cache DAL, adapter do Google Ads, clock) fiadas no padrão existente
+- `components/servers/ads-manager-server/src/controller/google_ads/create_google_ads_client.ts` (+ `.test.ts`) — método `fetchCampaignMetrics` (GAQL), `GoogleAdsAuthenticationError`/`isGoogleAdsAuthFailure` para distinguir falha de auth vs. genérica
+- `components/servers/ads-manager-server/src/controller/google_ads/create_mock_google_ads_client.ts` — campanhas fake determinísticas (status variados, zero cliques/conversões) para dev/test
+- `components/servers/ads-manager-server/src/controller/google_ads/index.ts` — exports novos
+- `components/servers/ads-manager-server/src/controller/http_handlers/campaigns.ts` (novo) + `index.ts` — handler HTTP de `GET /accounts/:id/campaigns`, mapeamento de erros para os 4 códigos do contrato
+- `components/servers/ads-manager-server/src/controller/create_controller.ts` — wiring do novo router, DAL de cache e adapter do Google Ads em `modelDeps`
+- `components/servers/ads-manager-server/src/operator/create_operator.ts` — bind das novas funções DAL (`findCampaignMetricsByAccountAndRange`, `upsertCampaignMetrics`)
+- `components/servers/ads-manager-server/src/integration/test_env.ts` — dal de teste de integração atualizado para o novo shape de `ControllerDependencies.dal` (só ajuste de tipos; testes de integração em si ficam para a Phase 5)
 
 ### Blockers
 

@@ -5,21 +5,30 @@
 import type { Router } from 'express';
 import { Router as createRouter } from 'express';
 import type {
+  CampaignMetricsCache as DalCampaignMetricsCache,
   ConnectedAccount as DalConnectedAccount,
   ConnectedAccountStatus,
   CreateConnectedAccountInput as DalCreateConnectedAccountInput,
+  UpsertCampaignMetricsInput as DalUpsertCampaignMetricsInput,
 } from '../dal';
 import type { Config } from '../config';
-import type { Dependencies, Logger, ConnectedAccount as ModelConnectedAccount } from '../model';
-import { encryptRefreshToken } from '../model';
+import type {
+  CampaignMetricsCacheEntry,
+  Dependencies,
+  FetchGoogleAdsCampaignMetricsResult,
+  Logger,
+  ConnectedAccount as ModelConnectedAccount,
+} from '../model';
+import { encryptRefreshToken, decryptRefreshToken } from '../model';
 import {
   createOAuth2ClientAdapter,
   createGoogleAdsClientAdapter,
   createOAuthSessionStore,
   createMockOAuth2ClientAdapter,
   createMockGoogleAdsClientAdapter,
+  GoogleAdsAuthenticationError,
 } from './google_ads';
-import { createOAuthRouter, createAccountsRouter } from './http_handlers';
+import { createOAuthRouter, createAccountsRouter, createCampaignsRouter } from './http_handlers';
 
 export type ControllerDependencies = Readonly<{
   readonly config: Config;
@@ -44,6 +53,12 @@ export type ControllerDependencies = Readonly<{
         readonly grantedScopes: string;
       }>
     ) => Promise<DalConnectedAccount | null>;
+    readonly findCampaignMetricsByAccountAndRange: (
+      connectedAccountId: string,
+      dateRangeStart: string,
+      dateRangeEnd: string
+    ) => Promise<readonly DalCampaignMetricsCache[]>;
+    readonly upsertCampaignMetrics: (input: DalUpsertCampaignMetricsInput) => Promise<DalCampaignMetricsCache>;
   }>;
 }>;
 
@@ -62,6 +77,23 @@ const toModelConnectedAccount = (account: DalConnectedAccount): ModelConnectedAc
   timezone: account.timezone,
   status: account.status,
   connectedAt: account.connectedAt,
+});
+
+// Adapts a DAL row-mapped CampaignMetricsCache into the Model's own CampaignMetricsCacheEntry —
+// same "Controller adapts DAL shapes into Model's own types" pattern as toModelConnectedAccount
+// above; drops the id/connectedAccountId/dateRangeStart/dateRangeEnd fields the Model use-case
+// doesn't need (it already knows the account id and date range it queried for).
+const toModelCampaignMetricsCacheEntry = (row: DalCampaignMetricsCache): CampaignMetricsCacheEntry => ({
+  googleCampaignId: row.googleCampaignId,
+  campaignName: row.campaignName,
+  status: row.status,
+  impressions: row.impressions,
+  clicks: row.clicks,
+  costMicros: row.costMicros,
+  conversions: row.conversions,
+  conversionsValue: row.conversionsValue,
+  budgetMicros: row.budgetMicros,
+  fetchedAt: row.fetchedAt,
 });
 
 export const createController = (deps: ControllerDependencies): Controller => {
@@ -127,11 +159,73 @@ export const createController = (deps: ControllerDependencies): Controller => {
       const account = await dal.reconnectConnectedAccount(id, input);
       return account ? toModelConnectedAccount(account) : null;
     },
+
+    findCampaignMetricsCache: async (accountId, dateRangeStart, dateRangeEnd) => {
+      const rows = await dal.findCampaignMetricsByAccountAndRange(accountId, dateRangeStart, dateRangeEnd);
+      return rows.map(toModelCampaignMetricsCacheEntry);
+    },
+    upsertCampaignMetricsCache: async (input) => {
+      await dal.upsertCampaignMetrics({
+        connectedAccountId: input.accountId,
+        googleCampaignId: input.googleCampaignId,
+        campaignName: input.campaignName,
+        status: input.status,
+        dateRangeStart: input.dateRangeStart,
+        dateRangeEnd: input.dateRangeEnd,
+        impressions: input.impressions,
+        clicks: input.clicks,
+        costMicros: input.costMicros,
+        conversions: input.conversions,
+        conversionsValue: input.conversionsValue,
+        budgetMicros: input.budgetMicros,
+      });
+    },
+
+    // Looks up the account's encrypted refresh token directly via the raw DAL (never through
+    // findConnectedAccountById above, whose Model-facing ConnectedAccount deliberately excludes
+    // the token — see connected_account.ts) and classifies the adapter's failure into
+    // 'auth_failure' vs 'generic_failure' so fetchCampaignMetrics can decide whether to call
+    // handleTokenRefreshFailure without needing to know anything about google-ads-api's error
+    // shapes itself (SPEC.md > Algorithms/Business Logic, steps 5-6).
+    fetchCampaignMetricsFromGoogleAds: async ({
+      accountId,
+      dateRangeStart,
+      dateRangeEnd,
+    }): Promise<FetchGoogleAdsCampaignMetricsResult> => {
+      const account = await dal.findConnectedAccountById(accountId);
+      if (!account) {
+        return { ok: false, kind: 'generic_failure', message: `Connected account not found: ${accountId}` };
+      }
+      try {
+        const refreshToken = decryptRefreshToken(config.tokenEncryptionKey, account.oauthRefreshTokenEncrypted);
+        const campaigns = await googleAdsClient.fetchCampaignMetrics(
+          account.googleCustomerId,
+          refreshToken,
+          dateRangeStart,
+          dateRangeEnd
+        );
+        return { ok: true, campaigns };
+      } catch (err) {
+        const kind = err instanceof GoogleAdsAuthenticationError ? 'auth_failure' : 'generic_failure';
+        logger.warn({ err, accountId, kind }, 'Failed to fetch campaign metrics from Google Ads');
+        return {
+          ok: false,
+          kind,
+          message:
+            kind === 'auth_failure'
+              ? 'Google Ads authentication failed'
+              : 'Google Ads API request failed',
+        };
+      }
+    },
+
+    now: () => new Date(),
   };
 
   const router = createRouter();
   router.use(createOAuthRouter({ modelDeps }));
   router.use(createAccountsRouter({ modelDeps }));
+  router.use(createCampaignsRouter({ modelDeps }));
 
   return { router };
 };

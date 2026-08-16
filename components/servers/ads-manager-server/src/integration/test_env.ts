@@ -21,10 +21,12 @@ import {
   createConnectedAccount,
   deleteConnectedAccount,
   findAllConnectedAccounts,
+  findCampaignMetricsByAccountAndRange,
   findConnectedAccountByCustomerId,
   findConnectedAccountById,
   reconnectConnectedAccount,
   updateConnectedAccountStatus,
+  upsertCampaignMetrics,
   type ConnectedAccount,
 } from '../dal';
 
@@ -119,6 +121,8 @@ export const startTestServer = async (): Promise<TestServer> => {
     deleteConnectedAccount: deleteConnectedAccount.bind(null, { db }),
     updateConnectedAccountStatus: updateConnectedAccountStatus.bind(null, { db }),
     reconnectConnectedAccount: reconnectConnectedAccount.bind(null, { db }),
+    findCampaignMetricsByAccountAndRange: findCampaignMetricsByAccountAndRange.bind(null, { db }),
+    upsertCampaignMetrics: upsertCampaignMetrics.bind(null, { db }),
   };
 
   const controller = createController({ config, logger, dal });

@@ -11,6 +11,8 @@ import {
     deleteConnectedAccount,
     updateConnectedAccountStatus,
     reconnectConnectedAccount,
+    findCampaignMetricsByAccountAndRange,
+    upsertCampaignMetrics,
 } from "../dal";
 import { createDatabase } from "./create_database";
 import { createHttpServer } from "./create_http_server";
@@ -63,6 +65,8 @@ export const createOperator = (deps: OperatorDependencies): Operator => {
         deleteConnectedAccount: deleteConnectedAccount.bind(null, { db }),
         updateConnectedAccountStatus: updateConnectedAccountStatus.bind(null, { db }),
         reconnectConnectedAccount: reconnectConnectedAccount.bind(null, { db }),
+        findCampaignMetricsByAccountAndRange: findCampaignMetricsByAccountAndRange.bind(null, { db }),
+        upsertCampaignMetrics: upsertCampaignMetrics.bind(null, { db }),
     };
 
     // Create controller, passing raw I/O + DAL + config

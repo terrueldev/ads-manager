@@ -50,5 +50,10 @@ export const createMockDependencies = (overrides?: Partial<Dependencies>): Depen
   updateConnectedAccountStatus: async () => null,
   reconnectConnectedAccount: async () => null,
 
+  findCampaignMetricsCache: async () => [],
+  upsertCampaignMetricsCache: async () => undefined,
+  fetchCampaignMetricsFromGoogleAds: async () => ({ ok: true, campaigns: [] }),
+  now: () => new Date('2026-08-16T12:00:00.000Z'),
+
   ...overrides,
 });

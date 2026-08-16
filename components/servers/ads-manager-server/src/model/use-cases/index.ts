@@ -21,3 +21,12 @@ export { handleTokenRefreshFailure } from './handle_token_refresh_failure';
 export type { HandleTokenRefreshFailureResult } from './handle_token_refresh_failure';
 
 export { parseAccessibleCustomerIds } from './parse_accessible_customer_ids';
+
+export { calculateDerivedMetrics } from './calculate_derived_metrics';
+
+export { fetchCampaignMetrics, CACHE_TTL_MS } from './fetch_campaign_metrics';
+export type {
+  FetchCampaignMetricsArgs,
+  FetchCampaignMetricsError,
+  FetchCampaignMetricsResult,
+} from './fetch_campaign_metrics';
