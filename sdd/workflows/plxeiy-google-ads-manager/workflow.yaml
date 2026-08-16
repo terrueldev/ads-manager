@@ -2,17 +2,17 @@ id: plxeiy
 name: google-ads-manager
 source: interactive
 created: 2026-08-15
-current: 01-google-ads-manager
+current: 01-google-ads-manager/01-google-ads-connection
 
-phase: plan
-step: plan_review
+phase: spec
+step: spec_creation
 
 progress:
-  total_items: 1
+  total_items: 2
   specs_completed: 1
-  specs_pending: 0
+  specs_pending: 1
   plans_completed: 1
-  plans_pending: 0
+  plans_pending: 1
   implemented: 0
   reviewed: 0
 
@@ -31,3 +31,21 @@ items:
     review_status: pending
 
     substep: null
+
+    children:
+      - id: 01-google-ads-connection
+        change_id: google-ads-manager-2
+        title: Google Ads Connection
+        type: feature
+        parent_id: 01-google-ads-manager
+        branch: epic/google-ads-manager-google-ads-connection
+        location: sdd/workflows/plxeiy-google-ads-manager/drafts/01-google-ads-manager/01-google-ads-connection
+        context_sections: []
+        depends_on: []
+
+        spec_status: in_progress
+        plan_status: pending
+        impl_status: pending
+        review_status: pending
+
+        substep: solicitation
