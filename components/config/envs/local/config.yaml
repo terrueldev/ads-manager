@@ -1,3 +1,13 @@
 # yaml-language-server: $schema=../../schemas/config.schema.json
 # Local development overrides
 # Inherits from envs/default/ and overrides specific values
+
+# Ports 5432 and 3000 are already taken by other local services on this machine (OrbStack) — use
+# 5434 for the ads-manager dev/test Postgres container, and 3001 for the server, instead.
+ads-manager-db:
+  port: 5434
+
+ads-manager-server:
+  port: 3001
+  database:
+    port: 5434
