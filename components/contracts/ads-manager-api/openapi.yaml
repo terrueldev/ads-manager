@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: ads-manager API
+  version: 1.0.0
+  description: API specification for ads-manager
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  # NOTE: Health check endpoints (/health, /readiness, /liveness) are NOT defined here.
+  # They are infrastructure endpoints implemented directly in the controller.
+  #
+  # Add your API endpoints here as features are implemented.
+  # Example:
+  # /users:
+  #   post:
+  #     operationId: createUser
+  #     ...
+
+components:
+  schemas:
+    # Add your domain schemas here as entities are defined.
+    # Example:
+    # User:
+    #   type: object
+    #   required:
+    #     - id
+    #     - email
+    #   properties:
+    #     id:
+    #       type: string
+    #     email:
+    #       type: string
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/Error'

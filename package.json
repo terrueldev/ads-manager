@@ -7,6 +7,14 @@
     "components/*/*"
   ],
   "scripts": {
+    "ads-manager-server:dev": "npm run dev -w @ads-manager/server",
+    "ads-manager-server:build": "npm run build -w @ads-manager/server",
+    "ads-manager-server:start": "npm run start -w @ads-manager/server",
+    "ads-manager-server:test": "npm run test -w @ads-manager/server",
+    "ads-manager-webapp:dev": "npm run dev -w @ads-manager/webapp",
+    "ads-manager-webapp:build": "npm run build -w @ads-manager/webapp",
+    "ads-manager-webapp:preview": "npm run preview -w @ads-manager/webapp",
+    "ads-manager-webapp:test": "npm run test -w @ads-manager/webapp"
   },
   "devDependencies": {
     "typescript": "^5.3.0"

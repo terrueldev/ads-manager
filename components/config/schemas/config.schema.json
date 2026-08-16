@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "config.schema.json",
+  "title": "Project Configuration Schema",
+  "description": "Schema for SDD project configuration. Users extend this as config evolves.",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Reserved for future cross-cutting concerns",
+      "additionalProperties": true
+    },
+    "ads-manager-db": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string" },
+        "port": { "type": "number", "default": 5432 },
+        "name": { "type": "string" },
+        "user": { "type": "string" },
+        "passwordSecret": { "type": "string" },
+        "pool": { "type": "number", "default": 10 }
+      },
+      "required": ["host", "port", "name", "user", "passwordSecret"]
+    },
+    "ads-manager-server": {
+      "type": "object",
+      "properties": {
+        "port": { "type": "number" },
+        "probesPort": { "type": "number" },
+        "logLevel": { "type": "string" },
+        "databases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "host": { "type": "string" },
+              "port": { "type": "number" },
+              "name": { "type": "string" },
+              "ssl": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "ads-manager-webapp": {
+      "type": "object",
+      "properties": {
+        "apis": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "base_url": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

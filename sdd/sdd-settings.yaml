@@ -4,24 +4,61 @@
 # This file is generated and maintained by SDD commands.
 # To modify settings, use: /sdd with natural language about settings
 # ============================================================================
-
 sdd:
-  initialized_by_plugin_version: "7.3.0"
-  updated_by_plugin_version: "7.3.0"
-  initialized_at: "2026-08-15 23:59:53Z"
-  updated_at: "2026-08-15 23:59:53Z"
-
+  initialized_by_plugin_version: 7.3.0
+  updated_by_plugin_version: 7.3.0
+  initialized_at: 2026-08-15 23:59:53Z
+  updated_at: 2026-08-16 00:57:43Z
 project:
-  name: "ads-manager"
-
-# Tech packs and components are added here during init and implementation.
-
+  name: ads-manager
+  description: Google Ads campaign manager with AI-assisted analysis
 techpacks:
   fs-ts:
     name: fullstack-typescript
     namespace: fs-ts
-    version: "1.0.0"
+    version: 1.0.0
     mode: internal
     path: fullstack-typescript
-
-components: {}
+components:
+  config:
+    type: config
+    techpack: fs-ts
+    directory: components/config
+    settings: {}
+  ads-manager-api:
+    type: contract
+    techpack: fs-ts
+    directory: components/contracts/ads-manager-api
+    settings:
+      visibility: internal
+  ads-manager-db:
+    type: database
+    techpack: fs-ts
+    directory: components/databases/ads-manager-db
+    settings:
+      provider: postgresql
+      dedicated: false
+  ads-manager-server:
+    type: server
+    techpack: fs-ts
+    directory: components/servers/ads-manager-server
+    settings:
+      server_type: api
+      databases:
+        - ads-manager-db
+      provides_contracts:
+        - ads-manager-api
+      consumes_contracts: []
+      helm: false
+  ads-manager-webapp:
+    type: webapp
+    techpack: fs-ts
+    directory: components/webapps/ads-manager-webapp
+    settings:
+      contracts:
+        - ads-manager-api
+      helm: false
+system:
+  logging:
+    enabled: true
+    level: info

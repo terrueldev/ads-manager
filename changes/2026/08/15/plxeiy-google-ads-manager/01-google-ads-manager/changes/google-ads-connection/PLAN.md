@@ -134,3 +134,33 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 | Developer token da Google Ads API pode demorar para ser aprovado pelo Google | Levantar esse pré-requisito no início da Phase 4; usar contas de teste/sandbox enquanto o token de produção não é aprovado |
 | Testes de integração/E2E sem helm/Testkube podem divergir do padrão do tech pack | Documentado na Phase 6; revisitar se o projeto adotar k8s no futuro |
 | Biblioteca cliente da Google Ads API para Node/TypeScript pode ter breaking changes entre versões | Fixar versão no `package.json` do `ads-manager-server`; revisar changelog antes de atualizar |
+
+## Implementation State
+
+- **Current Phase:** Phase 2 (Contract — ads-manager-api)
+- **Status:** in_progress
+
+### Completed Phases
+
+- [x] Phase 1: Component Scaffolding
+- [ ] Phase 2: Contract — ads-manager-api
+- [ ] Phase 3: Database — ads-manager-db
+- [ ] Phase 4: Server — ads-manager-server
+- [ ] Phase 5: Webapp — ads-manager-webapp
+- [ ] Phase 6: Integration & E2E Testing
+- [ ] Phase 7: Review
+
+### Actual Files Changed
+
+**Phase 1:**
+- `components/config/` — package.json, tsconfig.json, envs/{default,local}/config.yaml, schemas/config.schema.json, types/{index,server,webapp}.ts
+- `components/contracts/ads-manager-api/` — openapi.yaml, package.json, .gitignore
+- `components/databases/ads-manager-db/` — README.md, package.json, migrations/001_initial_schema.sql (placeholder), seeds/001_seed_data.sql (placeholder)
+- `components/servers/ads-manager-server/` — CMDO skeleton (config/model/dal/operator/controller layers)
+- `components/webapps/ads-manager-webapp/` — MVVM/React skeleton
+- `sdd/sdd-settings.yaml` — 5 components registered
+- Root `package.json` — workspace scripts for server/webapp
+
+### Blockers
+
+None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário antes de testar Phase 4 fim a fim, mas não bloqueia Phases 2-3.

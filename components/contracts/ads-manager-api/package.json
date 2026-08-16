@@ -1,0 +1,16 @@
+{
+  "name": "@ads-manager/contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./generated/api-types.ts",
+      "default": "./generated/api-types.ts"
+    }
+  },
+  "devDependencies": {
+    "openapi-typescript": "^6.7.0",
+    "@stoplight/spectral-cli": "^6.11.0"
+  }
+}
