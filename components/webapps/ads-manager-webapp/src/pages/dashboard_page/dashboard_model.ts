@@ -141,6 +141,101 @@ export const sortCampaignsByCostDescending = (campaigns: readonly Campaign[]): r
   [...campaigns].sort((a, b) => b.cost - a.cost);
 
 // ---------------------------------------------------------------------------------------------
+// KPI summary + campaign comparison chart
+// ---------------------------------------------------------------------------------------------
+
+export type CampaignKpiTotals = Readonly<{
+  readonly totalCost: number;
+  readonly totalClicks: number;
+  readonly totalConversions: number;
+  readonly roas: number;
+}>;
+
+// Aggregates the currently loaded campaign list into headline totals for the KPI row. ROAS must be
+// computed as total conversion value / total cost across the whole list, NOT as the average of each
+// campaign's own ROAS (averaging ratios would over-weight low-spend campaigns) — so we recover each
+// campaign's conversion value from its own roas*cost (the same identity the server used to compute
+// roas per SPEC.md's glossary: "valor de conversão dividido pelo custo") and re-divide by the total
+// cost. An empty list or zero total cost both fall back to 0 rather than NaN/Infinity.
+export const computeCampaignKpiTotals = (campaigns: readonly Campaign[]): CampaignKpiTotals => {
+  const totalCost = campaigns.reduce((sum, campaign) => sum + campaign.cost, 0);
+  const totalClicks = campaigns.reduce((sum, campaign) => sum + campaign.clicks, 0);
+  const totalConversions = campaigns.reduce((sum, campaign) => sum + campaign.conversions, 0);
+  const totalConversionsValue = campaigns.reduce((sum, campaign) => sum + campaign.roas * campaign.cost, 0);
+  const roas = totalCost === 0 ? 0 : totalConversionsValue / totalCost;
+
+  return { totalCost, totalClicks, totalConversions, roas };
+};
+
+// ---------------------------------------------------------------------------------------------
+// Campaign comparison bar chart
+// ---------------------------------------------------------------------------------------------
+
+export type CampaignChartMetric = 'cost' | 'conversions' | 'roas';
+
+export const CAMPAIGN_CHART_METRIC_LABELS: Readonly<Record<CampaignChartMetric, string>> = {
+  cost: 'Gasto',
+  conversions: 'Conversões',
+  roas: 'ROAS',
+};
+
+export type CampaignChartDatum = Readonly<{
+  readonly campaignId: string;
+  readonly name: string;
+  readonly value: number;
+}>;
+
+const campaignMetricValue = (campaign: Campaign, metric: CampaignChartMetric): number => {
+  switch (metric) {
+    case 'cost':
+      return campaign.cost;
+    case 'conversions':
+      return campaign.conversions;
+    case 'roas':
+      return campaign.roas;
+    default:
+      return 0;
+  }
+};
+
+// Maps campaigns to the flat {name, value} shape recharts' BarChart wants, for whichever single
+// metric is currently toggled. Keeps the chart component itself free of any campaign-field
+// switching logic (and therefore free of any need to know about Campaign at all beyond this shape).
+export const mapCampaignsToChartData = (
+  campaigns: readonly Campaign[],
+  metric: CampaignChartMetric,
+): readonly CampaignChartDatum[] =>
+  campaigns.map((campaign) => ({
+    campaignId: campaign.campaign_id,
+    name: campaign.name,
+    value: campaignMetricValue(campaign, metric),
+  }));
+
+// Formats a chart value for the given metric's unit — reuses the same formatters the KPI row and
+// table already use, so the chart's axis/tooltip stay consistent with the rest of the page.
+export const formatCampaignChartValue = (
+  value: number,
+  metric: CampaignChartMetric,
+  currencyCode: string,
+): string => {
+  switch (metric) {
+    case 'cost':
+      return formatCurrency(value, currencyCode);
+    case 'conversions':
+      return formatInteger(value);
+    case 'roas':
+      return formatRoas(value);
+    default:
+      return String(value);
+  }
+};
+
+// Truncates a campaign name for the x-axis tick so long names don't overlap; the full name is
+// still shown verbatim in the hover tooltip.
+export const truncateChartLabel = (name: string, maxLength = 14): string =>
+  name.length > maxLength ? `${name.slice(0, maxLength - 1)}…` : name;
+
+// ---------------------------------------------------------------------------------------------
 // Stale cache banner (FR4/FR5, AC4)
 // ---------------------------------------------------------------------------------------------
 

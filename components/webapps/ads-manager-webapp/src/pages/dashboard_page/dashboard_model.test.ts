@@ -4,8 +4,10 @@ import type { Campaign, ConnectedAccount } from '@/types';
 import {
   accountNeedsReconnect,
   campaignStatusBadgeVariant,
+  computeCampaignKpiTotals,
   dateRangeReducer,
   formatBudget,
+  formatCampaignChartValue,
   formatCurrency,
   formatFetchedAt,
   formatInteger,
@@ -14,9 +16,11 @@ import {
   initialDateRangeState,
   isAccountNeedsReconnectError,
   mapCampaignsErrorToMessage,
+  mapCampaignsToChartData,
   mapDateRangeToQueryParams,
   sortCampaignsByCostDescending,
   staleBannerMessage,
+  truncateChartLabel,
   validateCustomRange,
 } from './dashboard_model';
 
@@ -216,6 +220,105 @@ describe('sortCampaignsByCostDescending', () => {
 
     expect(sorted.map((c) => c.campaign_id)).toEqual(['b', 'c', 'a']);
     expect(input.map((c) => c.campaign_id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('computeCampaignKpiTotals', () => {
+  it('sums cost, clicks and conversions across all campaigns', () => {
+    const campaigns = [
+      buildCampaign({ campaign_id: 'a', cost: 100, clicks: 10, conversions: 2, roas: 2 }),
+      buildCampaign({ campaign_id: 'b', cost: 200, clicks: 20, conversions: 3, roas: 4 }),
+    ];
+
+    const totals = computeCampaignKpiTotals(campaigns);
+
+    expect(totals.totalCost).toBe(300);
+    expect(totals.totalClicks).toBe(30);
+    expect(totals.totalConversions).toBe(5);
+  });
+
+  it('computes ROAS as total conversion value / total cost, not the average of per-campaign ROAS', () => {
+    // campaign a: cost 100, roas 2 -> conversion value 200
+    // campaign b: cost 300, roas 4 -> conversion value 1200
+    // naive average of ROAS would be (2 + 4) / 2 = 3; correct weighted total is 1400 / 400 = 3.5
+    const campaigns = [
+      buildCampaign({ campaign_id: 'a', cost: 100, roas: 2 }),
+      buildCampaign({ campaign_id: 'b', cost: 300, roas: 4 }),
+    ];
+
+    expect(computeCampaignKpiTotals(campaigns).roas).toBe(3.5);
+  });
+
+  it('returns all-zero totals for an empty campaign list instead of NaN', () => {
+    expect(computeCampaignKpiTotals([])).toEqual({
+      totalCost: 0,
+      totalClicks: 0,
+      totalConversions: 0,
+      roas: 0,
+    });
+  });
+
+  it('treats total cost of zero as ROAS 0 instead of dividing by zero', () => {
+    const campaigns = [buildCampaign({ cost: 0, roas: 0 })];
+
+    expect(computeCampaignKpiTotals(campaigns).roas).toBe(0);
+  });
+});
+
+describe('mapCampaignsToChartData', () => {
+  const campaigns = [
+    buildCampaign({ campaign_id: 'a', name: 'Campanha A', cost: 100, conversions: 5, roas: 2 }),
+    buildCampaign({ campaign_id: 'b', name: 'Campanha B', cost: 200, conversions: 10, roas: 3 }),
+  ];
+
+  it('maps campaigns to {name, value} using the cost metric', () => {
+    expect(mapCampaignsToChartData(campaigns, 'cost')).toEqual([
+      { campaignId: 'a', name: 'Campanha A', value: 100 },
+      { campaignId: 'b', name: 'Campanha B', value: 200 },
+    ]);
+  });
+
+  it('maps campaigns to {name, value} using the conversions metric', () => {
+    expect(mapCampaignsToChartData(campaigns, 'conversions')).toEqual([
+      { campaignId: 'a', name: 'Campanha A', value: 5 },
+      { campaignId: 'b', name: 'Campanha B', value: 10 },
+    ]);
+  });
+
+  it('maps campaigns to {name, value} using the roas metric', () => {
+    expect(mapCampaignsToChartData(campaigns, 'roas')).toEqual([
+      { campaignId: 'a', name: 'Campanha A', value: 2 },
+      { campaignId: 'b', name: 'Campanha B', value: 3 },
+    ]);
+  });
+
+  it('returns an empty array for an empty campaign list', () => {
+    expect(mapCampaignsToChartData([], 'cost')).toEqual([]);
+  });
+});
+
+describe('formatCampaignChartValue', () => {
+  it('formats the cost metric as currency', () => {
+    expect(formatCampaignChartValue(292.5, 'cost', 'BRL')).toContain('292,50');
+  });
+
+  it('formats the conversions metric as an integer', () => {
+    expect(formatCampaignChartValue(12345, 'conversions', 'BRL')).toBe('12.345');
+  });
+
+  it('formats the roas metric with an "x" suffix', () => {
+    expect(formatCampaignChartValue(3.2, 'roas', 'BRL')).toBe('3.20x');
+  });
+});
+
+describe('truncateChartLabel', () => {
+  it('leaves short names untouched', () => {
+    expect(truncateChartLabel('Campanha A')).toBe('Campanha A');
+  });
+
+  it('truncates long names with an ellipsis at the given max length', () => {
+    expect(truncateChartLabel('Uma Campanha Muito Longa Demais', 14)).toBe('Uma Campanha …');
+    expect(truncateChartLabel('Uma Campanha Muito Longa Demais', 14).length).toBe(14);
   });
 });
 

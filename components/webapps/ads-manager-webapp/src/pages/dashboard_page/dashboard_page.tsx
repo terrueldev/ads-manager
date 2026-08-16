@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@/components';
 import { AccountSelector } from './account_selector';
+import { CampaignKpiRow } from './campaign_kpi_row';
+import { CampaignsBarChart } from './campaigns_bar_chart';
 import { CampaignsTable } from './campaigns_table';
 import { DateRangeSelector } from './date_range_selector';
 import { staleBannerMessage } from './dashboard_model';
@@ -117,6 +119,13 @@ export const DashboardPage = (): React.JSX.Element => {
 
             {!needsReconnect && !isLoadingCampaigns && !campaignsErrorMessage && isEmpty && (
               <p className="text-muted-foreground">Nenhuma campanha encontrada para o período selecionado.</p>
+            )}
+
+            {!needsReconnect && !isLoadingCampaigns && !campaignsErrorMessage && (
+              <div className="space-y-4">
+                <CampaignKpiRow campaigns={campaigns} currencyCode={selectedAccount?.currency_code ?? 'USD'} />
+                <CampaignsBarChart campaigns={campaigns} currencyCode={selectedAccount?.currency_code ?? 'USD'} />
+              </div>
             )}
 
             {!needsReconnect && !isLoadingCampaigns && !campaignsErrorMessage && !isEmpty && campaigns.length > 0 && (
