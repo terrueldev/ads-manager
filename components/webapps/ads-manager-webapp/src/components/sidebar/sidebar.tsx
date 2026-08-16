@@ -9,6 +9,7 @@ type NavItem = {
 
 const navItems: readonly NavItem[] = [
   { path: '/', label: 'Home' },
+  { path: '/dashboard', label: 'Dashboard' },
   { path: '/contas', label: 'Contas' },
 ];
 

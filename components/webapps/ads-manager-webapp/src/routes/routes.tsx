@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { Layout } from '@/components';
-import { HomePage, ContasPage, ContasCallbackPage } from '@/pages';
+import { HomePage, ContasPage, ContasCallbackPage, DashboardPage } from '@/pages';
 
 // Search params Google appends when redirecting the browser back to /contas/callback (see
 // pages/contas_callback_page/contas_callback_page.tsx for the full design-decision writeup on why
@@ -29,6 +29,12 @@ export const createAppRouter = () => {
     component: HomePage,
   });
 
+  const dashboardRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/dashboard',
+    component: DashboardPage,
+  });
+
   const contasRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/contas',
@@ -42,7 +48,7 @@ export const createAppRouter = () => {
     component: ContasCallbackPage,
   });
 
-  const routeTree = rootRoute.addChildren([homeRoute, contasRoute, contasCallbackRoute]);
+  const routeTree = rootRoute.addChildren([homeRoute, dashboardRoute, contasRoute, contasCallbackRoute]);
 
   return createRouter({ routeTree });
 };

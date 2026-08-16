@@ -114,7 +114,7 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 ## Implementation State
 
-- **Current Phase:** Phase 4 (Webapp)
+- **Current Phase:** Phase 5 (Integration Testing)
 - **Status:** in_progress
 
 ### Completed Phases
@@ -122,7 +122,7 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - [x] Phase 1: Database
 - [x] Phase 2: Contract
 - [x] Phase 3: Server
-- [ ] Phase 4: Webapp
+- [x] Phase 4: Webapp
 - [ ] Phase 5: Integration Testing
 - [ ] Phase 6: Review
 
@@ -148,6 +148,13 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - `components/servers/ads-manager-server/src/controller/create_controller.ts` — wiring do novo router, DAL de cache e adapter do Google Ads em `modelDeps`
 - `components/servers/ads-manager-server/src/operator/create_operator.ts` — bind das novas funções DAL (`findCampaignMetricsByAccountAndRange`, `upsertCampaignMetrics`)
 - `components/servers/ads-manager-server/src/integration/test_env.ts` — dal de teste de integração atualizado para o novo shape de `ControllerDependencies.dal` (só ajuste de tipos; testes de integração em si ficam para a Phase 5)
+
+**Phase 4:**
+- `components/webapps/ads-manager-webapp/src/pages/dashboard_page/` — tela Dashboard (MVVM: model + view-model + view), 30 testes unitários
+- `components/webapps/ads-manager-webapp/src/services/campaigns_api.ts` — cliente HTTP para `GET /accounts/:id/campaigns`
+- `components/webapps/ads-manager-webapp/src/types/campaigns.ts` — aliases sobre os tipos gerados do contrato
+- `components/webapps/ads-manager-webapp/src/routes/routes.tsx`, `src/components/sidebar/sidebar.tsx` — rota `/dashboard` e nav
+- Validação: typecheck/lint/build/testes (51 testes) — todos passando
 
 ### Blockers
 
