@@ -61,8 +61,8 @@ items:
         depends_on: [01-google-ads-connection]
 
         spec_status: approved
-        plan_status: in_progress
-        impl_status: pending
+        plan_status: approved
+        impl_status: in_progress
         review_status: pending
 
         substep: null
