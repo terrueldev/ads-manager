@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "sdd": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/LiorCohen/sdd.git"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "sdd@sdd": true
+  }
+}
