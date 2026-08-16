@@ -5,7 +5,7 @@ created: 2026-08-15
 current: 01-google-ads-manager/01-google-ads-connection
 
 phase: spec
-step: spec_creation
+step: spec_review
 
 progress:
   total_items: 2
@@ -39,13 +39,13 @@ items:
         type: feature
         parent_id: 01-google-ads-manager
         branch: epic/google-ads-manager-google-ads-connection
-        location: sdd/workflows/plxeiy-google-ads-manager/drafts/01-google-ads-manager/01-google-ads-connection
+        location: changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/google-ads-connection
         context_sections: []
         depends_on: []
 
-        spec_status: in_progress
+        spec_status: ready_for_review
         plan_status: pending
         impl_status: pending
         review_status: pending
 
-        substep: solicitation
+        substep: null
