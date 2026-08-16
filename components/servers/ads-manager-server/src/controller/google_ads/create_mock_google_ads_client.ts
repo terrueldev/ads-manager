@@ -71,6 +71,31 @@ export const MOCK_CAMPAIGNS: readonly RawCampaignMetrics[] = [
   },
 ];
 
+// --- Test-only controls (Phase 6 — Integration Testing, campaign-performance-dashboard) ---
+// Module-level (not per-adapter-instance) because createController builds exactly one adapter
+// instance per process and every test in campaign_performance_dashboard.integration.test.ts
+// shares that one server/process (see src/integration/test_env.ts's startTestServer). Lets
+// integration tests:
+//   - force fetchCampaignMetrics to fail deterministically with a generic (non-auth) error, to
+//     exercise fetchCampaignMetrics's stale-cache-fallback / no-cache-error paths (SPEC.md >
+//     Algorithms/Business Logic, steps 6-7) without real network flakiness;
+//   - assert how many times fetchCampaignMetrics was actually invoked (e.g. to prove a
+//     within-TTL cache hit never touched the mock at all).
+// Call resetMockGoogleAdsTestControls() in afterEach so neither leaks between tests.
+let campaignMetricsCallCount = 0;
+let forceGenericFailure = false;
+
+export const getMockCampaignMetricsCallCount = (): number => campaignMetricsCallCount;
+
+export const setMockGoogleAdsGenericFailure = (shouldFail: boolean): void => {
+  forceGenericFailure = shouldFail;
+};
+
+export const resetMockGoogleAdsTestControls = (): void => {
+  campaignMetricsCallCount = 0;
+  forceGenericFailure = false;
+};
+
 export const createMockGoogleAdsClientAdapter = (): GoogleAdsClientAdapter => {
   const listAccessibleCustomerIds = async (_refreshToken: string): Promise<readonly string[]> =>
     MOCK_ACCESSIBLE_CUSTOMER_IDS;
@@ -89,6 +114,10 @@ export const createMockGoogleAdsClientAdapter = (): GoogleAdsClientAdapter => {
     _dateRangeStart: string,
     _dateRangeEnd: string
   ): Promise<readonly RawCampaignMetrics[]> => {
+    campaignMetricsCallCount += 1;
+    if (forceGenericFailure) {
+      throw new Error('createMockGoogleAdsClientAdapter: forced generic failure (test-only)');
+    }
     if (!MOCK_CUSTOMER_METADATA[customerId]) {
       throw new Error(`createMockGoogleAdsClientAdapter: no mock metadata for customer_id "${customerId}"`);
     }

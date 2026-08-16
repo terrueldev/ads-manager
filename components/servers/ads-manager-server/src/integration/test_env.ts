@@ -13,7 +13,13 @@ import { Pool } from 'pg';
 import type pino from 'pino';
 import type { Config } from '../config';
 import { createController } from '../controller';
-import { MOCK_ACCESSIBLE_CUSTOMER_IDS } from '../controller/google_ads/create_mock_google_ads_client';
+import {
+  MOCK_ACCESSIBLE_CUSTOMER_IDS,
+  MOCK_CAMPAIGNS,
+  getMockCampaignMetricsCallCount,
+  resetMockGoogleAdsTestControls,
+  setMockGoogleAdsGenericFailure,
+} from '../controller/google_ads/create_mock_google_ads_client';
 import { MOCK_OAUTH_CODE, MOCK_REFRESH_TOKEN } from '../controller/google_ads/create_mock_oauth2_client';
 import { createDatabase } from '../operator/create_database';
 import { createHttpServer } from '../operator/create_http_server';
@@ -30,7 +36,15 @@ import {
   type ConnectedAccount,
 } from '../dal';
 
-export { MOCK_ACCESSIBLE_CUSTOMER_IDS, MOCK_OAUTH_CODE, MOCK_REFRESH_TOKEN };
+export {
+  MOCK_ACCESSIBLE_CUSTOMER_IDS,
+  MOCK_CAMPAIGNS,
+  MOCK_OAUTH_CODE,
+  MOCK_REFRESH_TOKEN,
+  getMockCampaignMetricsCallCount,
+  resetMockGoogleAdsTestControls,
+  setMockGoogleAdsGenericFailure,
+};
 
 // Matches the docker container started for Phase 6 (see the db README) unless overridden.
 const TEST_DB_HOST = process.env.TEST_DB_HOST ?? 'localhost';
@@ -139,8 +153,14 @@ export const startTestServer = async (): Promise<TestServer> => {
     password: config.database.password,
   });
 
+  // CASCADE is required (not merely a nicety) since campaign_metrics_cache.connected_account_id
+  // FK-references connected_accounts.id (migration 002_campaign_metrics_cache.sql) — Postgres
+  // refuses a plain TRUNCATE on a table something else references, regardless of whether that
+  // other table has rows. This also means every truncateConnectedAccounts() call empties
+  // campaign_metrics_cache too, which is exactly what campaign_performance_dashboard's
+  // integration suite wants between tests.
   const truncateConnectedAccounts = async (): Promise<void> => {
-    await pool.query('TRUNCATE TABLE connected_accounts');
+    await pool.query('TRUNCATE TABLE connected_accounts CASCADE');
   };
 
   const stop = async (): Promise<void> => {

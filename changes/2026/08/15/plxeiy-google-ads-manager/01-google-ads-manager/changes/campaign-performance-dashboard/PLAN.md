@@ -99,11 +99,11 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - [x] `test_generic_failure_does_not_trigger_reconnect`
 
 ### Integration Tests
-- [ ] `test_fetch_success_writes_cache_to_postgres`
-- [ ] `test_second_request_within_ttl_does_not_call_google_ads_mock`
-- [ ] `test_api_failure_with_existing_cache_returns_stale_true`
-- [ ] `test_api_failure_without_cache_returns_error`
-- [ ] `test_needs_reconnect_account_returns_409_without_calling_api`
+- [x] `test_fetch_success_writes_cache_to_postgres`
+- [x] `test_second_request_within_ttl_does_not_call_google_ads_mock`
+- [x] `test_api_failure_with_existing_cache_returns_stale_true`
+- [x] `test_api_failure_without_cache_returns_error`
+- [x] `test_needs_reconnect_account_returns_409_without_calling_api`
 
 ## Risks
 
@@ -114,7 +114,7 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 ## Implementation State
 
-- **Current Phase:** Phase 5 (Integration Testing)
+- **Current Phase:** Phase 6 (Review)
 - **Status:** in_progress
 
 ### Completed Phases
@@ -123,7 +123,7 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - [x] Phase 2: Contract
 - [x] Phase 3: Server
 - [x] Phase 4: Webapp
-- [ ] Phase 5: Integration Testing
+- [x] Phase 5: Integration Testing
 - [ ] Phase 6: Review
 
 ### Actual Files Changed
@@ -155,6 +155,16 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - `components/webapps/ads-manager-webapp/src/types/campaigns.ts` — aliases sobre os tipos gerados do contrato
 - `components/webapps/ads-manager-webapp/src/routes/routes.tsx`, `src/components/sidebar/sidebar.tsx` — rota `/dashboard` e nav
 - Validação: typecheck/lint/build/testes (51 testes) — todos passando
+
+**Phase 5:**
+- `components/servers/ads-manager-server/src/integration/campaign_performance_dashboard.integration.test.ts` (novo) — 5 testes de integração contra Postgres real local (Docker, `ads-manager-test-db`), Google Ads mockado
+- `components/servers/ads-manager-server/src/controller/google_ads/create_mock_google_ads_client.ts` — hook de injeção de falha genérica + contador de chamadas, test-only (`setMockGoogleAdsGenericFailure`, `getMockCampaignMetricsCallCount`, `resetMockGoogleAdsTestControls`)
+- `components/servers/ads-manager-server/src/controller/google_ads/index.ts` — exports dos 3 novos helpers test-only
+- `components/servers/ads-manager-server/src/integration/test_env.ts` — `truncateConnectedAccounts` corrigido para `TRUNCATE ... CASCADE` (a FK de `campaign_metrics_cache` passou a exigir isso, senão o TRUNCATE original quebraria mesmo para a suíte pré-existente de `google-ads-connection`); re-exporta `MOCK_CAMPAIGNS` e os 3 helpers test-only acima
+- `components/servers/ads-manager-server/vitest.integration.config.ts` — `fileParallelism: false` (dois arquivos de teste de integração agora sobem o mesmo servidor de porta fixa; rodar em paralelo causava `EADDRINUSE`)
+- `google_ads_connection.integration.test.ts` não foi tocado — os 6 testes existentes continuam passando inalterados
+
+Validação: `npm run test:integration` (11/11), `npm run test` (65/65 unitários, sem regressão), `npm run typecheck` e `npm run lint` limpos.
 
 ### Blockers
 

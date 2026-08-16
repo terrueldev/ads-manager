@@ -14,4 +14,9 @@ export type { GoogleAdsClientConfig, GoogleAdsClientAdapter } from './create_goo
 
 // Test/dev-only deterministic adapters — see create_mock_oauth2_client.ts for why they exist.
 export { createMockOAuth2ClientAdapter } from './create_mock_oauth2_client';
-export { createMockGoogleAdsClientAdapter } from './create_mock_google_ads_client';
+export {
+  createMockGoogleAdsClientAdapter,
+  getMockCampaignMetricsCallCount,
+  setMockGoogleAdsGenericFailure,
+  resetMockGoogleAdsTestControls,
+} from './create_mock_google_ads_client';

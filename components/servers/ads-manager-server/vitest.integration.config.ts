@@ -11,5 +11,14 @@ export default defineConfig({
     // unit test default.
     testTimeout: 15000,
     hookTimeout: 15000,
+    // Every *.integration.test.ts file calls test_env.ts's startTestServer(), which binds a real
+    // HTTP server to a fixed port (TEST_SERVER_PORT/TEST_PROBES_PORT — see test_env.ts). Vitest
+    // runs separate test files in parallel by default, which would make two integration test
+    // files race for the same port (EADDRINUSE) now that there's more than one
+    // (campaign_performance_dashboard.integration.test.ts alongside
+    // google_ads_connection.integration.test.ts). Forcing sequential file execution keeps the
+    // fixed-port test server (and shared Postgres state) simple, which matters more here than
+    // parallel speed for a small, local dev-loop suite.
+    fileParallelism: false,
   },
 });
