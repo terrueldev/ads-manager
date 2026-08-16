@@ -39,6 +39,9 @@ Ordem estritamente sequencial: cada change depende dos dados/infra estabelecidos
 | 2 | `campaign-performance-dashboard` | Buscar e exibir métricas de performance das campanhas por conta/período, com cache e indicador de dados desatualizados | `google-ads-connection` | pending |
 | 3 | `ai-performance-analysis` | Chat com o Claude para analisar performance e gerar sugestões de melhoria | `campaign-performance-dashboard` | pending |
 | 4 | `mcp-suggestion-apply` | Revisão, aprovação e aplicação de sugestões via MCP `google-ads-mcp-rw`, com log de auditoria | `ai-performance-analysis` | pending |
+| 5 | `production-deploy` | Deploy da aplicação (server + webapp + banco) em hospedagem de produção, após os 4 changes acima e o design system (ver nota) estarem prontos | `mcp-suggestion-apply` | pending |
+
+> **Nota (2026-08-16):** o usuário pediu explicitamente para adicionar este passo de deploy como a última etapa do epic — só depois de tudo estar pronto, **incluindo o design visual** (ver [[webapp-design-system-deferred]] — design system completo, claro+escuro, também deferido para depois dos 4 changes funcionais). Quando chegar a vez do `production-deploy`, apresentar alternativas de hospedagem (ex: Vercel, Railway, Fly.io, Render) para o usuário escolher — nenhuma foi decidida ainda.
 
 ## Per-Child Process
 
