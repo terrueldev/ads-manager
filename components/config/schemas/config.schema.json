@@ -28,16 +28,31 @@
         "port": { "type": "number" },
         "probesPort": { "type": "number" },
         "logLevel": { "type": "string" },
-        "databases": {
+        "database": {
           "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "host": { "type": "string" },
-              "port": { "type": "number" },
-              "name": { "type": "string" },
-              "ssl": { "type": "boolean" }
-            }
+          "properties": {
+            "host": { "type": "string" },
+            "port": { "type": "number" },
+            "name": { "type": "string" },
+            "user": { "type": "string" },
+            "passwordSecret": { "type": "string" },
+            "pool": { "type": "number" }
+          }
+        },
+        "googleOAuth": {
+          "type": "object",
+          "description": "Google OAuth client for the Google Ads Connection flow. Values are placeholders here — real values come from env vars (GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / GOOGLE_OAUTH_REDIRECT_URI), never from this file.",
+          "properties": {
+            "clientId": { "type": "string" },
+            "clientSecret": { "type": "string" },
+            "redirectUri": { "type": "string" }
+          }
+        },
+        "googleAds": {
+          "type": "object",
+          "description": "Google Ads API developer token. Real value comes from GOOGLE_ADS_DEVELOPER_TOKEN env var, never from this file.",
+          "properties": {
+            "developerToken": { "type": "string" }
           }
         }
       }

@@ -137,7 +137,7 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 ## Implementation State
 
-- **Current Phase:** Phase 4 (Server — ads-manager-server)
+- **Current Phase:** Phase 5 (Webapp — ads-manager-webapp)
 - **Status:** in_progress
 
 ### Completed Phases
@@ -145,6 +145,7 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - [x] Phase 1: Component Scaffolding
 - [x] Phase 2: Contract — ads-manager-api
 - [x] Phase 3: Database — ads-manager-db
+- [x] Phase 4: Server — ads-manager-server
 - [ ] Phase 4: Server — ads-manager-server
 - [ ] Phase 5: Webapp — ads-manager-webapp
 - [ ] Phase 6: Integration & E2E Testing
@@ -174,8 +175,21 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - `components/databases/ads-manager-db/README.md` — documenta o schema
 - `components/servers/ads-manager-server/src/dal/connected_accounts/` — DAL completo (create, findAll, findByCustomerId, findById, updateStatus, delete) com queries parametrizadas via `pg`
 
+**Phase 4:**
+- `components/config/` — campos `googleOAuth`, `googleAds`, `tokenEncryptionKey`, `database` corrigido (placeholders de env var, sem segredos reais)
+- `components/servers/ads-manager-server/src/config/load_config.ts` — reescrito, resolve os bugs de typecheck herdados da Phase 1
+- `components/servers/ads-manager-server/src/model/` — `token_crypto.ts` (AES-256-GCM), definitions, e 6 use-cases (start_oauth_flow, handle_oauth_callback, connect_accounts, list_accounts, disconnect_account, handle_token_refresh_failure, parse_accessible_customer_ids) com testes unitários
+- `components/servers/ads-manager-server/src/controller/google_ads/` — wrappers de `google-auth-library` e `google-ads-api` (mockáveis), com testes
+- `components/servers/ads-manager-server/src/controller/http_handlers/` — os 5 endpoints (oauth.ts, accounts.ts)
+- `components/servers/ads-manager-server/eslint.config.js` — criado (faltava desde a Phase 1)
+- `package.json` do server — `dotenv`, `google-auth-library`, `google-ads-api` adicionados
+
+**Decisão de design:** handoff de tokens OAuth entre callback e `POST /accounts` é feito via store em memória chaveado por `customer_id` (não por `state`), já que o contrato OpenAPI (fixado na Phase 2) não carrega um campo de sessão — documentado em `create_oauth_session_store.ts`. Aceitável dado o modelo single-user local; não sobrevive a restart do processo.
+
+**Validação:** `npm run typecheck/lint/test -w @ads-manager/server` — todos passando (38 testes).
+
 ### Blockers
 
-None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário antes de testar Phase 4 fim a fim.
+None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário para testar o fluxo OAuth fim a fim contra a API real do Google Ads (mocks cobrem os testes automatizados).
 
-Erros de typecheck pré-existentes no scaffolding do server (`create_database.ts` referencia `databaseUrl` inexistente em `Config`; `create_operator.ts` importa stubs placeholder `findGreetingById`/`insertGreeting` do template) — não tocam o DAL novo, serão corrigidos na Phase 4 junto com a implementação real do operator/config.
+`handleTokenRefreshFailure` está implementado e testado mas ainda não é chamado por nenhum endpoint (nenhum existe para isso ainda) — fica pronto para o próximo change do epic (`campaign-performance-dashboard`) invocar antes de qualquer chamada à API do Google Ads por conta.

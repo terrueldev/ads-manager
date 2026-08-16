@@ -13,4 +13,16 @@ export type ServerConfig = Readonly<{
     passwordSecret?: string;
     pool?: number;
   }>;
+  // Google Ads Connection (see changes/.../google-ads-connection/SPEC.md). Placeholders only —
+  // real values always come from env vars, read exclusively in src/config/load_config.ts.
+  googleOAuth?: Readonly<{
+    clientId?: string;
+    clientSecret?: string;
+    redirectUri?: string;
+  }>;
+  googleAds?: Readonly<{
+    developerToken?: string;
+  }>;
+  // tokenEncryptionKey is intentionally NOT part of this yaml-backed shape — it is sourced only
+  // from the TOKEN_ENCRYPTION_KEY env var directly in load_config.ts, never from config.yaml.
 }>;

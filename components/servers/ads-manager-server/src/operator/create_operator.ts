@@ -3,7 +3,14 @@
 // Telemetry is initialized here as the first thing before other modules
 import { createBaseLogger, createLogger } from "./logger";
 import { createController } from "../controller";
-import { findGreetingById, insertGreeting } from "../dal";
+import {
+    findConnectedAccountByCustomerId,
+    findConnectedAccountById,
+    findAllConnectedAccounts,
+    createConnectedAccount,
+    deleteConnectedAccount,
+    updateConnectedAccountStatus,
+} from "../dal";
 import { createDatabase } from "./create_database";
 import { createHttpServer } from "./create_http_server";
 import { createLifecycleProbes } from "./lifecycle_probes";
@@ -46,14 +53,18 @@ export const createOperator = (deps: OperatorDependencies): Operator => {
     // Create raw I/O capabilities (no domain knowledge)
     const db = createDatabase({ config, logger });
 
-    // Bind DAL functions with database
+    // Bind DAL functions with database (raw I/O capability, no domain knowledge)
     const dal = {
-        findGreetingById: findGreetingById.bind(null, { db }),
-        insertGreeting: insertGreeting.bind(null, { db }),
+        findConnectedAccountByCustomerId: findConnectedAccountByCustomerId.bind(null, { db }),
+        findConnectedAccountById: findConnectedAccountById.bind(null, { db }),
+        findAllConnectedAccounts: findAllConnectedAccounts.bind(null, { db }),
+        createConnectedAccount: createConnectedAccount.bind(null, { db }),
+        deleteConnectedAccount: deleteConnectedAccount.bind(null, { db }),
+        updateConnectedAccountStatus: updateConnectedAccountStatus.bind(null, { db }),
     };
 
     // Create controller, passing raw I/O + DAL + config
-    const controller = createController({ dal });
+    const controller = createController({ config, logger, dal });
 
     // State machine for operator lifecycle
     const stateMachine = createStateMachine<OperatorState>({

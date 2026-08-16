@@ -1,3 +1,6 @@
-// HTTP handlers index
-// Add router exports here as features are implemented
-// Example: export { createUsersRouter } from './users';
+// HTTP handlers index - exports only
+export { createOAuthRouter } from './oauth';
+export type { OAuthRouterDependencies } from './oauth';
+
+export { createAccountsRouter } from './accounts';
+export type { AccountsRouterDependencies } from './accounts';

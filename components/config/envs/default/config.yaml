@@ -18,12 +18,29 @@ ads-manager-server:
   port: 3000
   probesPort: 9090
   logLevel: info
-  databases:
-    ads-manager-db:
-      host: localhost
-      port: 5432
-      name: ads_manager
-      ssl: false
+  database:
+    host: localhost
+    port: 5432
+    name: ads_manager
+    user: app
+    passwordSecret: db-credentials # k8s Secret name; the actual value is injected via DB_PASSWORD env var at runtime, never stored here
+    pool: 10
+  # --- Google Ads Connection prerequisites (see changes/.../google-ads-connection/SPEC.md > Dependencies) ---
+  # None of these have real values here on purpose. They must be provided via environment
+  # variables (e.g. a local .env file loaded by dotenv in src/config/load_config.ts, which is the
+  # ONLY place allowed to read process.env — see backend-standards). Until a Google Cloud project,
+  # OAuth client, and Google Ads developer token exist (pending manual setup), these stay empty and
+  # any attempt to actually run the OAuth/Google Ads flow will fail with a clear error from Google's
+  # SDKs — that is expected until the manual prerequisite is complete.
+  googleOAuth:
+    clientId: "" # GOOGLE_OAUTH_CLIENT_ID
+    clientSecret: "" # GOOGLE_OAUTH_CLIENT_SECRET — never commit a real value
+    redirectUri: "http://localhost:3000/api/v1/oauth/google-ads/callback" # GOOGLE_OAUTH_REDIRECT_URI overrides
+  googleAds:
+    developerToken: "" # GOOGLE_ADS_DEVELOPER_TOKEN — never commit a real value
+  # tokenEncryptionKey has no key here at all (not even an empty placeholder key name) — it is
+  # ALWAYS sourced from the TOKEN_ENCRYPTION_KEY env var (32 random bytes, base64-encoded) and is
+  # never written to any config.yaml, committed or not.
 
 ads-manager-webapp:
   apis:

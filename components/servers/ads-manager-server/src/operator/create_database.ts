@@ -18,10 +18,16 @@ type DatabaseDependencies = Readonly<{
 export const createDatabase = (deps: DatabaseDependencies): Database => {
   const logger = deps.logger.child({ component: 'database' });
 
-  // PostgreSQL connection pool
-  // Configure via DATABASE_URL environment variable
+  // PostgreSQL connection pool, configured from Config (host/port/name/user/password/pool) —
+  // see src/config/load_config.ts. The password is the only field sourced from an env var
+  // (DB_PASSWORD); everything else comes from config.yaml.
   const poolConfig: PoolConfig = {
-    connectionString: deps.config.databaseUrl,
+    host: deps.config.database.host,
+    port: deps.config.database.port,
+    database: deps.config.database.name,
+    user: deps.config.database.user,
+    password: deps.config.database.password,
+    max: deps.config.database.pool,
   };
 
   const pool = new Pool(poolConfig);

@@ -1,3 +1,6 @@
-// Model index
+// Model index - exports only
 export type { Dependencies } from './dependencies';
-// Add type and use case exports here as features are implemented
+export type { Logger } from './logger';
+export * from './definitions';
+export * from './use-cases';
+export { encryptRefreshToken, decryptRefreshToken } from './token_crypto';
