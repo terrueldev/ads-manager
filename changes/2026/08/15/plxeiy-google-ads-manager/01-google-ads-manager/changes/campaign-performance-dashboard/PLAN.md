@@ -114,8 +114,8 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 
 ## Implementation State
 
-- **Current Phase:** Phase 6 (Review)
-- **Status:** in_progress
+- **Current Phase:** Concluído
+- **Status:** complete
 
 ### Completed Phases
 
@@ -124,7 +124,7 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - [x] Phase 3: Server
 - [x] Phase 4: Webapp
 - [x] Phase 5: Integration Testing
-- [ ] Phase 6: Review
+- [x] Phase 6: Review
 
 ### Actual Files Changed
 
@@ -165,6 +165,12 @@ Todos os 5 componentes já existem (scaffolded em `google-ads-connection`) — e
 - `google_ads_connection.integration.test.ts` não foi tocado — os 6 testes existentes continuam passando inalterados
 
 Validação: `npm run test:integration` (11/11), `npm run test` (65/65 unitários, sem regressão), `npm run typecheck` e `npm run lint` limpos.
+
+**Phase 6 (Review):**
+- Verificado AC1-AC7 do SPEC.md contra a implementação real — todos atendidos.
+- Corrigida lacuna nos `Specs Directory Changes`: `specs/domain/glossary.md` (+ ROAS, Micros), `specs/domain/definitions/campaign-metrics-cache.md`, `specs/domain/use-cases/view-campaign-performance.md`, `specs/architecture/overview.md` (fluxo de dados do dashboard) — declarados no SPEC mas não populados durante as Phases 1-5, mesmo padrão de lacuna do change anterior.
+- Corrigido bug de lint no webapp: `eslint.config.js` não ignorava `dist/` (build local do `vite build` gerava erro de parsing no lint) — adicionado `ignores: ['**/dist/**']`.
+- Regressão final: typecheck + lint + testes (65 unitários + 11 integração no server, 51 no webapp) + build do webapp — todos passando.
 
 ### Blockers
 

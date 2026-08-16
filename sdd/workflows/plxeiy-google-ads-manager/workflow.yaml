@@ -4,16 +4,16 @@ source: interactive
 created: 2026-08-15
 current: 01-google-ads-manager/02-campaign-performance-dashboard
 
-phase: plan
-step: plan_review
+phase: review
+step: reviewing
 
 progress:
   total_items: 3
   specs_completed: 3
   specs_pending: 0
-  plans_completed: 2
-  plans_pending: 1
-  implemented: 1
+  plans_completed: 3
+  plans_pending: 0
+  implemented: 2
   reviewed: 1
 
 items:
@@ -62,7 +62,7 @@ items:
 
         spec_status: approved
         plan_status: approved
-        impl_status: in_progress
-        review_status: pending
+        impl_status: complete
+        review_status: ready_for_review
 
         substep: null

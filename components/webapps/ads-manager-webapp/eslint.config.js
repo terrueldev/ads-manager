@@ -4,6 +4,7 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import allowedStructure from './eslint-rules/allowed-structure.js';
 
 export default tseslint.config(
+  { ignores: ['**/dist/**'] },
   ...tseslint.configs.strictTypeChecked,
   {
     languageOptions: {

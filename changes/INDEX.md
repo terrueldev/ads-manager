@@ -10,7 +10,7 @@ Total: 3 specs (Active: 3, Deprecated: 0, Archived: 0)
 |--------|------|------|--------|-------|-------|
 | [google-ads-manager-1](2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/SPEC.md) | epic | plan_approved | Ads Management | N/A | 2026-08-15 |
 | [google-ads-manager-2](2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/google-ads-connection/SPEC.md) | feature | review_approved | Ads Management | N/A | 2026-08-16 |
-| [google-ads-manager-3](2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/campaign-performance-dashboard/SPEC.md) | feature | plan_review | Ads Management | N/A | 2026-08-16 |
+| [google-ads-manager-3](2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/campaign-performance-dashboard/SPEC.md) | feature | ready_for_review | Ads Management | N/A | 2026-08-16 |
 
 ## Deprecated
 

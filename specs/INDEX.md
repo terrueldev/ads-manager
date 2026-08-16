@@ -8,7 +8,7 @@ This file tracks all specifications in the project.
 |--------|------|--------|
 | [google-ads-manager-1](../changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/SPEC.md) | epic | plan_approved |
 | [google-ads-manager-2](../changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/google-ads-connection/SPEC.md) | feature | review_approved |
-| [google-ads-manager-3](../changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/campaign-performance-dashboard/SPEC.md) | feature | plan_review |
+| [google-ads-manager-3](../changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/campaign-performance-dashboard/SPEC.md) | feature | ready_for_review |
 
 ## Domain Knowledge
 
