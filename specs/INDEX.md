@@ -4,11 +4,9 @@ This file tracks all specifications in the project.
 
 ## Changes
 
-No changes yet. Create your first change with:
-
-```
-/sdd I want to create a new feature
-```
+| Change | Type | Status |
+|--------|------|--------|
+| [google-ads-manager-1](../changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/SPEC.md) | epic | spec_review |
 
 ## Domain Knowledge
 
