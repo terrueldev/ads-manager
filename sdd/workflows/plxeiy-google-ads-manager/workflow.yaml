@@ -2,19 +2,19 @@ id: plxeiy
 name: google-ads-manager
 source: interactive
 created: 2026-08-15
-current: 01-google-ads-manager/01-google-ads-connection
+current: 01-google-ads-manager/02-campaign-performance-dashboard
 
-phase: review
-step: reviewing
+phase: spec
+step: spec_creation
 
 progress:
-  total_items: 2
+  total_items: 3
   specs_completed: 2
-  specs_pending: 0
+  specs_pending: 1
   plans_completed: 2
-  plans_pending: 0
+  plans_pending: 1
   implemented: 1
-  reviewed: 0
+  reviewed: 1
 
 items:
   - id: 01-google-ads-manager
@@ -46,6 +46,23 @@ items:
         spec_status: approved
         plan_status: approved
         impl_status: complete
-        review_status: ready_for_review
+        review_status: approved
 
         substep: null
+
+      - id: 02-campaign-performance-dashboard
+        change_id: google-ads-manager-3
+        title: Campaign Performance Dashboard
+        type: feature
+        parent_id: 01-google-ads-manager
+        branch: epic/google-ads-manager-campaign-performance-dashboard
+        location: sdd/workflows/plxeiy-google-ads-manager/drafts/01-google-ads-manager/02-campaign-performance-dashboard
+        context_sections: []
+        depends_on: [01-google-ads-connection]
+
+        spec_status: in_progress
+        plan_status: pending
+        impl_status: pending
+        review_status: pending
+
+        substep: solicitation

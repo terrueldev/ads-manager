@@ -35,7 +35,7 @@ Ordem estritamente sequencial: cada change depende dos dados/infra estabelecidos
 
 | # | Change | Description | Depends On | Status |
 |---|--------|-------------|------------|--------|
-| 1 | `google-ads-connection` | Conectar, listar e desconectar contas do Google Ads via OAuth (múltiplas contas) | None | pending |
+| 1 | `google-ads-connection` | Conectar, listar e desconectar contas do Google Ads via OAuth (múltiplas contas) | None | complete |
 | 2 | `campaign-performance-dashboard` | Buscar e exibir métricas de performance das campanhas por conta/período, com cache e indicador de dados desatualizados | `google-ads-connection` | pending |
 | 3 | `ai-performance-analysis` | Chat com o Claude para analisar performance e gerar sugestões de melhoria | `campaign-performance-dashboard` | pending |
 | 4 | `mcp-suggestion-apply` | Revisão, aprovação e aplicação de sugestões via MCP `google-ads-mcp-rw`, com log de auditoria | `ai-performance-analysis` | pending |
