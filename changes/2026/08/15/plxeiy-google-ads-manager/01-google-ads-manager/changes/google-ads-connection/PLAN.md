@@ -142,8 +142,8 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 ## Implementation State
 
-- **Current Phase:** Phase 7 (Review)
-- **Status:** in_progress
+- **Current Phase:** Concluído
+- **Status:** complete
 
 ### Completed Phases
 
@@ -153,6 +153,7 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - [x] Phase 4: Server — ads-manager-server
 - [x] Phase 5: Webapp — ads-manager-webapp
 - [x] Phase 6: Integration Testing (E2E deferido, ver Tests section)
+- [x] Phase 7: Review
 - [ ] Phase 4: Server — ads-manager-server
 - [ ] Phase 5: Webapp — ads-manager-webapp
 - [ ] Phase 6: Integration & E2E Testing
@@ -219,8 +220,13 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 **Validação final:** 40 testes unitários (server) + 6 de integração + 21 testes (webapp), typecheck e lint limpos em ambos os workspaces.
 
+**Phase 7 (Review):**
+- Verificado AC1-AC6 do SPEC.md contra a implementação real (código, não só descrição) — todos atendidos.
+- Encontrada e corrigida uma lacuna nos `Specs Directory Changes` declarados no SPEC.md: `specs/domain/glossary.md`, `specs/domain/definitions/connected-account.md`, `specs/domain/use-cases/connect-google-ads-account.md` e `specs/architecture/overview.md` haviam sido declarados mas nunca populados durante as Phases 1-6. Populados agora.
+- Regressão final: typecheck + lint + testes (40 unitários + 6 integração no server, 21 no webapp) + build do webapp — todos passando.
+
 ### Blockers
 
-None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário para testar o fluxo OAuth fim a fim contra a API real do Google Ads (mocks cobrem os testes automatizados e de integração).
+Nenhum bloqueio para o código implementado. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário para testar o fluxo OAuth fim a fim contra a API real do Google Ads (mocks cobrem os testes automatizados e de integração). Testes E2E deferidos (ver Tests section).
 
 `handleTokenRefreshFailure` está implementado e testado mas ainda não é chamado por nenhum endpoint (nenhum existe para isso ainda) — fica pronto para o próximo change do epic (`campaign-performance-dashboard`) invocar antes de qualquer chamada à API do Google Ads por conta.

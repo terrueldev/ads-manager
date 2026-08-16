@@ -4,8 +4,8 @@ source: interactive
 created: 2026-08-15
 current: 01-google-ads-manager/01-google-ads-connection
 
-phase: plan
-step: plan_review
+phase: review
+step: reviewing
 
 progress:
   total_items: 2
@@ -13,7 +13,7 @@ progress:
   specs_pending: 0
   plans_completed: 2
   plans_pending: 0
-  implemented: 0
+  implemented: 1
   reviewed: 0
 
 items:
@@ -45,7 +45,7 @@ items:
 
         spec_status: approved
         plan_status: approved
-        impl_status: pending
-        review_status: pending
+        impl_status: complete
+        review_status: ready_for_review
 
         substep: null
