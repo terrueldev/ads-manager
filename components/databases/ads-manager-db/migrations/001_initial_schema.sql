@@ -1,34 +1,26 @@
 -- Migration: 001_initial_schema
--- Description: Initial database schema for ads-manager
+-- Description: Initial database schema for ads-manager — connected_accounts table
 -- Created: 2026-08-15
 
 BEGIN;
 
--- Create application schema
-CREATE SCHEMA IF NOT EXISTS app;
+-- Required for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Set search path for this session
-SET search_path TO app, public;
-
--- Example table structure (customize for your domain)
--- See: skills/postgresql/references/schema-management.md
-
--- CREATE TABLE app.users (
---     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
---     email TEXT UNIQUE NOT NULL,
---     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
---     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
--- );
-
--- CREATE TABLE app.audit_log (
---     id BIGSERIAL PRIMARY KEY,
---     table_name TEXT NOT NULL,
---     record_id UUID NOT NULL,
---     action TEXT NOT NULL,
---     changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
---     changed_by UUID REFERENCES app.users(id)
--- );
-
--- Add your initial schema here
+-- Google Ads accounts connected via OAuth (see SPEC: Google Ads Connection)
+CREATE TABLE IF NOT EXISTS connected_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    google_customer_id VARCHAR(32) NOT NULL,
+    account_name VARCHAR(255) NOT NULL,
+    currency_code VARCHAR(8) NOT NULL,
+    timezone VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'active',
+    oauth_refresh_token_encrypted TEXT NOT NULL,
+    granted_scopes TEXT NOT NULL,
+    connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_connected_accounts_google_customer_id UNIQUE (google_customer_id),
+    CONSTRAINT chk_connected_accounts_status CHECK (status IN ('active', 'suspended', 'needs_reconnect'))
+);
 
 COMMIT;

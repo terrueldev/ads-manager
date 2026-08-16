@@ -137,14 +137,14 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 ## Implementation State
 
-- **Current Phase:** Phase 3 (Database — ads-manager-db)
+- **Current Phase:** Phase 4 (Server — ads-manager-server)
 - **Status:** in_progress
 
 ### Completed Phases
 
 - [x] Phase 1: Component Scaffolding
 - [x] Phase 2: Contract — ads-manager-api
-- [ ] Phase 3: Database — ads-manager-db
+- [x] Phase 3: Database — ads-manager-db
 - [ ] Phase 4: Server — ads-manager-server
 - [ ] Phase 5: Webapp — ads-manager-webapp
 - [ ] Phase 6: Integration & E2E Testing
@@ -168,6 +168,14 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - Fixed infra bug from Phase 1: `package.json` deps used pnpm-only `workspace:*` protocol (incompatible with npm workspaces) in `ads-manager-server` and `ads-manager-webapp`; also `ads-manager-webapp` referenced invalid package name `@ads-manager/config/types` instead of `@ads-manager/config`. Fixed both; root `npm install` now succeeds.
 - `package-lock.json` — created (852 packages)
 
+**Phase 3:**
+- `components/databases/ads-manager-db/migrations/001_initial_schema.sql` — `connected_accounts` table (pgcrypto, CHECK em status, UNIQUE em google_customer_id)
+- `components/databases/ads-manager-db/seeds/001_seed_data.sql` — vazio (sem seed necessário)
+- `components/databases/ads-manager-db/README.md` — documenta o schema
+- `components/servers/ads-manager-server/src/dal/connected_accounts/` — DAL completo (create, findAll, findByCustomerId, findById, updateStatus, delete) com queries parametrizadas via `pg`
+
 ### Blockers
 
-None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário antes de testar Phase 4 fim a fim, mas não bloqueia Phase 3.
+None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário antes de testar Phase 4 fim a fim.
+
+Erros de typecheck pré-existentes no scaffolding do server (`create_database.ts` referencia `databaseUrl` inexistente em `Config`; `create_operator.ts` importa stubs placeholder `findGreetingById`/`insertGreeting` do template) — não tocam o DAL novo, serão corrigidos na Phase 4 junto com a implementação real do operator/config.

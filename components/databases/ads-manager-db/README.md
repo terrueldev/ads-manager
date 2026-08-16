@@ -20,6 +20,27 @@ Database operations are performed via SDD commands in your Claude Code session:
 /sdd seed the database          # (Optional) Load seed data
 ```
 
+## Schema
+
+### `connected_accounts`
+
+Google Ads accounts connected via OAuth (see the `google-ads-connection` change SPEC). One row per connected account/sub-account.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `UUID` | Primary key, `gen_random_uuid()` |
+| `google_customer_id` | `VARCHAR(32)` | Google Ads Customer ID, unique |
+| `account_name` | `VARCHAR(255)` | Account display name from Google Ads |
+| `currency_code` | `VARCHAR(8)` | Account currency (e.g. `BRL`, `USD`) |
+| `timezone` | `VARCHAR(64)` | Account timezone (e.g. `America/Sao_Paulo`) |
+| `status` | `VARCHAR(32)` | `active` \| `suspended` \| `needs_reconnect` (default `active`) |
+| `oauth_refresh_token_encrypted` | `TEXT` | Encrypted OAuth refresh token; never exposed via API |
+| `granted_scopes` | `TEXT` | OAuth scopes granted at connection time |
+| `connected_at` | `TIMESTAMPTZ` | When the account was connected |
+| `updated_at` | `TIMESTAMPTZ` | Last update timestamp |
+
+Indexes: `idx_connected_accounts_customer_id` (unique btree on `google_customer_id`).
+
 ## Available Operations
 
 | Prompt | Description |
