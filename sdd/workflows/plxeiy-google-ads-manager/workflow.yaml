@@ -1,0 +1,33 @@
+id: plxeiy
+name: google-ads-manager
+source: interactive
+created: 2026-08-15
+current: 01-google-ads-manager
+
+phase: spec
+step: spec_creation
+
+progress:
+  total_items: 1
+  specs_completed: 0
+  specs_pending: 1
+  plans_completed: 0
+  plans_pending: 1
+  implemented: 0
+  reviewed: 0
+
+items:
+  - id: 01-google-ads-manager
+    change_id: google-ads-manager-1
+    title: Google Ads Manager
+    type: epic
+    location: sdd/workflows/plxeiy-google-ads-manager/drafts/01-google-ads-manager
+    context_sections: []
+    depends_on: []
+
+    spec_status: in_progress
+    plan_status: pending
+    impl_status: pending
+    review_status: pending
+
+    substep: solicitation
