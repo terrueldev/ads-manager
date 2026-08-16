@@ -85,17 +85,18 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - Estados de loading/vazio/erro
 - Componente de confirmação inline (não `window.confirm`)
 
-### Phase 6: Integration & E2E Testing
+### Phase 6: Integration Testing
 **Agent:** `tester`
 **Standards:** `techpacks.routeSkills(phase: testing)`
 
-**Outcome:** Testes de integração e E2E do SPEC.md passando.
+**Outcome:** Testes de integração do SPEC.md passando contra Postgres real local.
 
-> **Nota:** o epic decidiu deploy local simples, sem Kubernetes/Helm nesta fase. Os componentes formais `integration-testing`/`e2e-testing` do tech pack dependem de `helm` (execução via Testkube). Nesta fase, os testes de integração/E2E rodam localmente (Vitest/Playwright diretamente contra um ambiente local), sem scaffolding do componente `helm` nem de `integration-testing`/`e2e-testing` formais. Revisitar se o projeto migrar para deploy k8s.
+> **Nota:** o epic decidiu deploy local simples, sem Kubernetes/Helm nesta fase. Os componentes formais `integration-testing`/`e2e-testing` do tech pack dependem de `helm` (execução via Testkube). Nesta fase, os testes de integração rodam localmente (Vitest direto contra um container Docker Postgres), sem scaffolding do componente `helm` nem de `integration-testing`/`e2e-testing` formais. Revisitar se o projeto migrar para deploy k8s.
+>
+> **E2E removido do escopo desta phase** (decisão tomada durante a implementação): sem credenciais OAuth reais do Google Cloud, um teste E2E via Playwright estaria majoritariamente testando os próprios mocks, com bastante infraestrutura adicional (browsers, servidor dev rodando) para pouco valor real agora. Retomar quando existirem credenciais reais e mais changes do epic implementados (ex: `campaign-performance-dashboard`), quando um E2E cobrir de fato um caminho ponta a ponta significativo.
 
 **Deliverables:**
-- Testes de integração do fluxo OAuth completo (sandbox), persistência, listagem e desconexão
-- Teste E2E: conectar conta → ver na lista; desconectar → some da lista
+- Testes de integração (Vitest) contra Postgres real local via Docker: fluxo OAuth completo (Google mockado), persistência com criptografia, listagem sem exposição de token, desconexão, e marcação `needs_reconnect`
 
 ### Phase 7: Review
 **Agent:** `reviewer`
@@ -110,34 +111,38 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 ## Tests
 
 ### Unit Tests
-- [ ] `test_oauth_code_exchange_success`
-- [ ] `test_oauth_code_exchange_failure_does_not_persist_account`
-- [ ] `test_refresh_token_encryption_roundtrip`
-- [ ] `test_oauth_state_validation_rejects_invalid`
-- [ ] `test_parse_accessible_accounts_includes_mcc_subaccounts`
+- [x] `test_oauth_code_exchange_success`
+- [x] `test_oauth_code_exchange_failure_does_not_persist_account`
+- [x] `test_refresh_token_encryption_roundtrip`
+- [x] `test_oauth_state_validation_rejects_invalid`
+- [x] `test_parse_accessible_accounts_includes_mcc_subaccounts`
+- [x] (adicionais) testes de reconexão FR6/AC6 em `connect_accounts.test.ts` e `handle_oauth_callback.test.ts`
 
 ### Integration Tests
-- [ ] `test_full_oauth_flow_against_sandbox_account`
-- [ ] `test_persist_selected_accounts_writes_encrypted_tokens`
-- [ ] `test_list_connected_accounts_never_exposes_tokens`
-- [ ] `test_disconnect_account_removes_record_and_stops_future_calls`
-- [ ] `test_revoked_refresh_token_marks_account_needs_reconnect`
+- [x] `test_full_oauth_flow_against_sandbox_account`
+- [x] `test_persist_selected_accounts_writes_encrypted_tokens`
+- [x] `test_list_connected_accounts_never_exposes_tokens`
+- [x] `test_disconnect_account_removes_record_and_stops_future_calls`
+- [x] `test_revoked_refresh_token_marks_account_needs_reconnect`
 
 ### E2E Tests
-- [ ] `test_user_connects_account_and_sees_it_listed`
-- [ ] `test_user_disconnects_account_and_it_disappears`
+
+**Deferido** (decisão tomada na Phase 6) — sem credenciais OAuth reais, testaria majoritariamente mocks. Retomar quando houver credenciais reais + mais changes do epic.
+- [ ] `test_user_connects_account_and_sees_it_listed` (deferido)
+- [ ] `test_user_disconnects_account_and_it_disappears` (deferido)
 
 ## Risks
 
 | Risk | Mitigation |
 |------|------------|
 | Developer token da Google Ads API pode demorar para ser aprovado pelo Google | Levantar esse pré-requisito no início da Phase 4; usar contas de teste/sandbox enquanto o token de produção não é aprovado |
-| Testes de integração/E2E sem helm/Testkube podem divergir do padrão do tech pack | Documentado na Phase 6; revisitar se o projeto adotar k8s no futuro |
+| Testes de integração sem helm/Testkube podem divergir do padrão do tech pack | Documentado na Phase 6; revisitar se o projeto adotar k8s no futuro |
+| Ausência de testes E2E até este ponto | Aceito deliberadamente (ver seção E2E acima); mitigar com testes de integração abrangentes (feito) e revisitar após credenciais OAuth reais |
 | Biblioteca cliente da Google Ads API para Node/TypeScript pode ter breaking changes entre versões | Fixar versão no `package.json` do `ads-manager-server`; revisar changelog antes de atualizar |
 
 ## Implementation State
 
-- **Current Phase:** Phase 6 (Integration & E2E Testing)
+- **Current Phase:** Phase 7 (Review)
 - **Status:** in_progress
 
 ### Completed Phases
@@ -147,6 +152,7 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - [x] Phase 3: Database — ads-manager-db
 - [x] Phase 4: Server — ads-manager-server
 - [x] Phase 5: Webapp — ads-manager-webapp
+- [x] Phase 6: Integration Testing (E2E deferido, ver Tests section)
 - [ ] Phase 4: Server — ads-manager-server
 - [ ] Phase 5: Webapp — ads-manager-webapp
 - [ ] Phase 6: Integration & E2E Testing
@@ -203,8 +209,18 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 **Correção aplicada após a Phase 5 (achado do agente, corrigido nesta sessão):** contas com status `needs_reconnect` eram rejeitadas como `already_connected` ao tentar reconectar (FR6/AC6 incompleto). Corrigido: nova função DAL `reconnectConnectedAccount` (UPDATE em vez de INSERT), `handleOAuthCallback` agora reporta `needs_reconnect` como `alreadyConnected: false` (mantém selecionável), `connectAccounts` chama reconnect em vez de create para esses casos. Testes novos cobrindo o caminho de reconexão; 40 testes do server passando.
 
+**Phase 6:**
+- `components/servers/ads-manager-server/src/controller/google_ads/create_mock_oauth2_client.ts`, `create_mock_google_ads_client.ts` — adapters determinísticos, ativados via `config.mockGoogleAds` (`MOCK_GOOGLE_ADS` env var), sem tocar o wiring de produção
+- `components/servers/ads-manager-server/src/integration/` — `test_env.ts` (sobe o server real + DAL real contra Postgres real) e `google_ads_connection.integration.test.ts` (6 testes, cobrindo os 5 do PLAN.md + isolamento entre contas)
+- `components/servers/ads-manager-server/vitest.integration.config.ts`, script `test:integration`
+- `components/databases/ads-manager-db/README.md` — seção "Local Integration Test Database" com os comandos Docker exatos
+- Testado contra Postgres 16 real via Docker (porta 5433, container efêmero, removido ao final)
+- **E2E (Playwright) removido do escopo** — infraestrutura criada (`e2e/`) foi descartada por decisão explícita: sem credenciais OAuth reais, testaria majoritariamente os próprios mocks
+
+**Validação final:** 40 testes unitários (server) + 6 de integração + 21 testes (webapp), typecheck e lint limpos em ambos os workspaces.
+
 ### Blockers
 
-None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário para testar o fluxo OAuth fim a fim contra a API real do Google Ads (mocks cobrem os testes automatizados).
+None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário para testar o fluxo OAuth fim a fim contra a API real do Google Ads (mocks cobrem os testes automatizados e de integração).
 
 `handleTokenRefreshFailure` está implementado e testado mas ainda não é chamado por nenhum endpoint (nenhum existe para isso ainda) — fica pronto para o próximo change do epic (`campaign-performance-dashboard`) invocar antes de qualquer chamada à API do Google Ads por conta.

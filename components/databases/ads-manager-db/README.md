@@ -53,6 +53,60 @@ Indexes: `idx_connected_accounts_customer_id` (unique btree on `google_customer_
 | `/sdd seed the database` | Load seed data |
 | `/sdd reset the database` | Drop, recreate, migrate, and seed |
 
+## Local Integration Test Database (no k8s)
+
+Phase 6 (Integration Testing) of the `google-ads-connection` change runs its integration tests
+(`components/servers/ads-manager-server/src/integration/*.integration.test.ts`, via
+`npm run test:integration -w @ads-manager/server`) directly against a **plain Docker Postgres
+container** on the host — not the k8s/Helm flow described above (the epic explicitly decided
+against Helm/Testkube for this phase; see PLAN.md's Phase 6 note). This section documents that
+setup for reproducibility; it does not replace the k8s flow for other purposes.
+
+E2E (Playwright) tests are deliberately deferred out of this change's scope: without a real Google
+Cloud OAuth client/developer token (pending manual setup) an E2E run would mostly exercise the mock
+adapters rather than real user value, for meaningfully more test infrastructure. Revisit once real
+OAuth credentials exist and more of the epic (e.g. `campaign-performance-dashboard`) is built, so an
+E2E run actually covers a real end-to-end path.
+
+**Start the container** (uses port `5433` so it never collides with a `localhost:5432` you may
+already have port-forwarded from k8s):
+
+```bash
+docker run --name ads-manager-test-db \
+  -e POSTGRES_USER=app \
+  -e POSTGRES_PASSWORD=ads_manager_test_local \
+  -e POSTGRES_DB=ads_manager \
+  -p 5433:5432 \
+  -d postgres:16
+```
+
+**Wait for it to be ready, then apply the migration:**
+
+```bash
+docker exec ads-manager-test-db pg_isready -U app -d ads_manager
+docker exec -i ads-manager-test-db psql -U app -d ads_manager < migrations/001_initial_schema.sql
+```
+
+**Connection settings** the test suites default to (override via the env vars in parentheses):
+
+| Setting | Value | Env var |
+|---------|-------|---------|
+| Host | localhost | `TEST_DB_HOST` |
+| Port | 5433 | `TEST_DB_PORT` |
+| Database | ads_manager | `TEST_DB_NAME` |
+| User | app | `TEST_DB_USER` |
+| Password | ads_manager_test_local | `TEST_DB_PASSWORD` |
+
+See `components/servers/ads-manager-server/src/integration/test_env.ts` for exactly how these are
+consumed (it also sets `config.mockGoogleAds = true` so the Google-facing boundary is
+deterministic/offline — no real Google Cloud OAuth client exists yet).
+
+**Tear down when done:**
+
+```bash
+docker stop ads-manager-test-db && docker rm ads-manager-test-db
+```
+
 ## Adding Migrations
 
 Create numbered SQL files in `migrations/`:

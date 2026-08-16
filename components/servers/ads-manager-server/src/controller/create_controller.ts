@@ -16,6 +16,8 @@ import {
   createOAuth2ClientAdapter,
   createGoogleAdsClientAdapter,
   createOAuthSessionStore,
+  createMockOAuth2ClientAdapter,
+  createMockGoogleAdsClientAdapter,
 } from './google_ads';
 import { createOAuthRouter, createAccountsRouter } from './http_handlers';
 
@@ -65,12 +67,21 @@ const toModelConnectedAccount = (account: DalConnectedAccount): ModelConnectedAc
 export const createController = (deps: ControllerDependencies): Controller => {
   const { config, logger, dal } = deps;
 
-  const oauth2Client = createOAuth2ClientAdapter(config.googleOAuth);
-  const googleAdsClient = createGoogleAdsClientAdapter({
-    clientId: config.googleOAuth.clientId,
-    clientSecret: config.googleOAuth.clientSecret,
-    developerToken: config.googleAds.developerToken,
-  });
+  // config.mockGoogleAds (MOCK_GOOGLE_ADS env var, Phase 6 — Integration & E2E Testing only):
+  // swaps in deterministic offline adapters instead of the real google-auth-library/google-ads-api
+  // ones. See src/controller/google_ads/create_mock_oauth2_client.ts for why — no real Google
+  // Cloud OAuth client/developer token exists yet (pending manual setup, SPEC.md > Dependencies).
+  // Defaults to false, so production/normal-dev wiring is unchanged.
+  const oauth2Client = config.mockGoogleAds
+    ? createMockOAuth2ClientAdapter(config.googleOAuth)
+    : createOAuth2ClientAdapter(config.googleOAuth);
+  const googleAdsClient = config.mockGoogleAds
+    ? createMockGoogleAdsClientAdapter()
+    : createGoogleAdsClientAdapter({
+        clientId: config.googleOAuth.clientId,
+        clientSecret: config.googleOAuth.clientSecret,
+        developerToken: config.googleAds.developerToken,
+      });
   const sessionStore = createOAuthSessionStore();
 
   const modelDeps: Dependencies = {

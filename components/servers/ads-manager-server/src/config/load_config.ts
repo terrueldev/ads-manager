@@ -42,6 +42,15 @@ export type Config = Readonly<{
   // (src/model/token_crypto.ts). Sourced ONLY from TOKEN_ENCRYPTION_KEY — never given a default
   // or placeholder value anywhere, since that would defeat the point of "never hardcode a secret".
   readonly tokenEncryptionKey: string;
+  // Test/dev-only escape hatch (Phase 6 — Integration & E2E Testing): when true, the Controller
+  // wires in the deterministic mock adapters (src/controller/google_ads/create_mock_*.ts) instead
+  // of the real google-auth-library/google-ads-api ones. Exists solely because there is no real
+  // Google Cloud OAuth client/developer token yet (pending manual setup, see SPEC.md >
+  // Dependencies) — it lets integration/E2E tests exercise the full OAuth → selection →
+  // persistence flow deterministically. Sourced ONLY from MOCK_GOOGLE_ADS env var (never from
+  // config.yaml, same reasoning as tokenEncryptionKey: a flag this consequential should never be
+  // silently committed as "on"). Defaults to false everywhere it isn't explicitly set.
+  readonly mockGoogleAds: boolean;
 }>;
 
 // Loose shape of whatever the YAML file actually contains for this component's section — every
@@ -124,5 +133,6 @@ export const loadConfig = (): Config => {
       developerToken: process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? raw.googleAds?.developerToken ?? '',
     },
     tokenEncryptionKey: process.env.TOKEN_ENCRYPTION_KEY ?? '',
+    mockGoogleAds: process.env.MOCK_GOOGLE_ADS === 'true',
   };
 };
