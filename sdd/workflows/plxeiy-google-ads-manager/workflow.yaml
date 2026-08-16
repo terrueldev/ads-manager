@@ -5,7 +5,7 @@ created: 2026-08-15
 current: 01-google-ads-manager/02-campaign-performance-dashboard
 
 phase: spec
-step: spec_creation
+step: spec_review
 
 progress:
   total_items: 3
@@ -56,13 +56,13 @@ items:
         type: feature
         parent_id: 01-google-ads-manager
         branch: epic/google-ads-manager-campaign-performance-dashboard
-        location: sdd/workflows/plxeiy-google-ads-manager/drafts/01-google-ads-manager/02-campaign-performance-dashboard
+        location: changes/2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/changes/campaign-performance-dashboard
         context_sections: []
         depends_on: [01-google-ads-connection]
 
-        spec_status: in_progress
+        spec_status: ready_for_review
         plan_status: pending
         impl_status: pending
         review_status: pending
 
-        substep: solicitation
+        substep: null
