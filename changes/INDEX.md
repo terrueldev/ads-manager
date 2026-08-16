@@ -8,7 +8,7 @@ Total: 1 specs (Active: 1, Deprecated: 0, Archived: 0)
 
 | Change | Type | Spec | Domain | Issue | Since |
 |--------|------|------|--------|-------|-------|
-| [google-ads-manager-1](2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/SPEC.md) | epic | spec_review | Ads Management | N/A | 2026-08-15 |
+| [google-ads-manager-1](2026/08/15/plxeiy-google-ads-manager/01-google-ads-manager/SPEC.md) | epic | plan_review | Ads Management | N/A | 2026-08-15 |
 
 ## Deprecated
 

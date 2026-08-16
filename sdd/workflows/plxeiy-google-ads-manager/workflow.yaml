@@ -4,13 +4,13 @@ source: interactive
 created: 2026-08-15
 current: 01-google-ads-manager
 
-phase: spec
-step: spec_review
+phase: plan
+step: plan_review
 
 progress:
   total_items: 1
-  specs_completed: 0
-  specs_pending: 1
+  specs_completed: 1
+  specs_pending: 0
   plans_completed: 0
   plans_pending: 1
   implemented: 0
@@ -25,8 +25,8 @@ items:
     context_sections: []
     depends_on: []
 
-    spec_status: ready_for_review
-    plan_status: pending
+    spec_status: approved
+    plan_status: in_progress
     impl_status: pending
     review_status: pending
 
