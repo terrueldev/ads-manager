@@ -109,6 +109,39 @@ describe('handleOAuthCallback', () => {
         expect.objectContaining({ refreshToken: 'refresh-456' })
       );
     });
+
+    it('AC6: reports a needs_reconnect account as NOT already-connected, so it stays selectable', async () => {
+      const deps = createMockDependencies({
+        consumeOAuthState: () => true,
+        exchangeOAuthCode: async () => ({
+          accessToken: 'access-123',
+          refreshToken: 'refresh-456',
+          scope: 'https://www.googleapis.com/auth/adwords',
+        }),
+        listAccessibleCustomerIds: async () => ['123-456-7890'],
+        fetchCustomerMetadata: async () => ({
+          accountName: 'Minha Loja',
+          currencyCode: 'BRL',
+          timezone: 'America/Sao_Paulo',
+        }),
+        findConnectedAccountByCustomerId: async () => ({
+          id: 'existing-id',
+          googleCustomerId: '123-456-7890',
+          accountName: 'Minha Loja (token velho)',
+          currencyCode: 'BRL',
+          timezone: 'America/Sao_Paulo',
+          status: 'needs_reconnect',
+          connectedAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+      });
+
+      const result = await handleOAuthCallback(deps, { code: 'valid-auth-code', state: 'valid-state' });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.accessibleAccounts[0]?.alreadyConnected).toBe(false);
+      }
+    });
   });
 
   describe('test_oauth_code_exchange_failure_does_not_persist_account', () => {

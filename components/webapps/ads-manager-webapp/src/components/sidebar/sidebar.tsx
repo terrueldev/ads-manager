@@ -9,8 +9,11 @@ type NavItem = {
 
 const navItems: readonly NavItem[] = [
   { path: '/', label: 'Home' },
-  // Add navigation items here as pages are implemented
+  { path: '/contas', label: 'Contas' },
 ];
+
+const isNavItemActive = (currentPath: string, itemPath: string): boolean =>
+  currentPath === itemPath || (itemPath !== '/' && currentPath.startsWith(`${itemPath}/`));
 
 export const Sidebar = (): React.JSX.Element => {
   const routerState = useRouterState();
@@ -26,7 +29,7 @@ export const Sidebar = (): React.JSX.Element => {
           {navItems.map((item) => (
             <li key={item.path}>
               <Button
-                variant={currentPath === item.path ? 'secondary' : 'ghost'}
+                variant={isNavItemActive(currentPath, item.path) ? 'secondary' : 'ghost'}
                 className={cn('w-full justify-start')}
                 asChild
               >

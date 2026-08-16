@@ -35,7 +35,12 @@ ads-manager-server:
   googleOAuth:
     clientId: "" # GOOGLE_OAUTH_CLIENT_ID
     clientSecret: "" # GOOGLE_OAUTH_CLIENT_SECRET — never commit a real value
-    redirectUri: "http://localhost:3000/api/v1/oauth/google-ads/callback" # GOOGLE_OAUTH_REDIRECT_URI overrides
+    # Points at the WEBAPP's callback route, not the server's. Google performs a full browser
+    # navigation to this URI; GET /oauth/google-ads/callback itself (server) only ever returns JSON
+    # and is still called — but via a same-origin fetch from the webapp route below, not by Google
+    # directly. See components/webapps/ads-manager-webapp/src/pages/contas_callback_page/contas_callback_page.tsx
+    # for the full design-decision writeup. GOOGLE_OAUTH_REDIRECT_URI overrides this for other envs.
+    redirectUri: "http://localhost:5173/contas/callback"
   googleAds:
     developerToken: "" # GOOGLE_ADS_DEVELOPER_TOKEN — never commit a real value
   # tokenEncryptionKey has no key here at all (not even an empty placeholder key name) — it is

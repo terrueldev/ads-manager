@@ -45,4 +45,14 @@ export type Dependencies = Readonly<{
     id: string,
     status: ConnectedAccountStatus
   ) => Promise<ConnectedAccount | null>;
+  readonly reconnectConnectedAccount: (
+    id: string,
+    input: Readonly<{
+      readonly accountName: string;
+      readonly currencyCode: string;
+      readonly timezone: string;
+      readonly oauthRefreshTokenEncrypted: string;
+      readonly grantedScopes: string;
+    }>
+  ) => Promise<ConnectedAccount | null>;
 }>;

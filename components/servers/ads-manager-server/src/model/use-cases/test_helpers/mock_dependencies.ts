@@ -48,6 +48,7 @@ export const createMockDependencies = (overrides?: Partial<Dependencies>): Depen
   }),
   deleteConnectedAccount: async () => true,
   updateConnectedAccountStatus: async () => null,
+  reconnectConnectedAccount: async () => null,
 
   ...overrides,
 });

@@ -1,5 +1,7 @@
 // Use-case: FR3 — persist the accounts the user selected after the OAuth callback
-// (POST /accounts).
+// (POST /accounts). Also covers FR6/AC6 reconnection: a `needs_reconnect` account is updated
+// in place (new token + status back to 'active') instead of rejected, since google_customer_id
+// is UNIQUE and re-creating it would violate that constraint.
 //
 // Tokens for each customer_id were already stashed by handleOAuthCallback (see
 // src/controller/google_ads/create_oauth_session_store.ts); this use-case only consumes them.
@@ -8,8 +10,8 @@
 // for accounts the user actually confirms.
 //
 // All-or-nothing: the whole batch is validated (not already connected, has pending tokens) before
-// anything is written, so a rejected request never partially creates accounts — consistent with
-// SPEC.md's "nenhuma conta parcialmente criada" principle, applied here to this endpoint too.
+// anything is written, so a rejected request never partially creates/updates accounts —
+// consistent with SPEC.md's "nenhuma conta parcialmente criada" principle, applied here too.
 import type { Dependencies } from '../dependencies';
 import type { ConnectedAccount, PendingCustomerTokens } from '../definitions';
 
@@ -30,7 +32,11 @@ export type ConnectAccountsResult =
 
 type ValidatedCandidate = Readonly<{
   readonly customerId: string;
+  // Existing row only when it's a "real" already-connected account (active/suspended) — a
+  // `needs_reconnect` row is treated as reconnectable, not already-connected, hence `existingId`
+  // being set separately from the already-connected check below.
   readonly alreadyConnected: boolean;
+  readonly reconnectId: string | undefined;
   readonly pending: PendingCustomerTokens | undefined;
 }>;
 
@@ -39,13 +45,15 @@ export const connectAccounts = async (
   args: ConnectAccountsArgs
 ): Promise<ConnectAccountsResult> => {
   const candidates: readonly ValidatedCandidate[] = await Promise.all(
-    args.customerIds.map(
-      async (customerId): Promise<ValidatedCandidate> => ({
+    args.customerIds.map(async (customerId): Promise<ValidatedCandidate> => {
+      const existing = await deps.findConnectedAccountByCustomerId(customerId);
+      return {
         customerId,
-        alreadyConnected: (await deps.findConnectedAccountByCustomerId(customerId)) !== null,
+        alreadyConnected: existing !== null && existing.status !== 'needs_reconnect',
+        reconnectId: existing?.status === 'needs_reconnect' ? existing.id : undefined,
         pending: deps.getPendingTokens(customerId),
-      })
-    )
+      };
+    })
   );
 
   const alreadyConnected = candidates.find((c) => c.alreadyConnected);
@@ -77,23 +85,43 @@ export const connectAccounts = async (
   }
 
   const connected = await Promise.all(
-    candidates.map(async ({ customerId, pending }): Promise<ConnectedAccount> => {
+    candidates.map(async ({ customerId, reconnectId, pending }): Promise<ConnectedAccount> => {
       // `pending` is guaranteed defined here (checked via `missingPendingTokens` above), but that
       // narrowing doesn't carry across the array — assert with a clear message instead of `!`.
       if (!pending) {
         throw new Error(`connectAccounts: unexpected missing pending tokens for ${customerId}`);
       }
 
-      const account = await deps.createConnectedAccount({
-        googleCustomerId: customerId,
-        accountName: pending.accountName,
-        currencyCode: pending.currencyCode,
-        timezone: pending.timezone,
-        oauthRefreshTokenEncrypted: deps.encryptRefreshToken(pending.refreshToken),
-        grantedScopes: pending.grantedScopes,
-      });
+      const encryptedToken = deps.encryptRefreshToken(pending.refreshToken);
+
+      const account = reconnectId
+        ? await (async () => {
+            const updated = await deps.reconnectConnectedAccount(reconnectId, {
+              accountName: pending.accountName,
+              currencyCode: pending.currencyCode,
+              timezone: pending.timezone,
+              oauthRefreshTokenEncrypted: encryptedToken,
+              grantedScopes: pending.grantedScopes,
+            });
+            if (!updated) {
+              throw new Error(`connectAccounts: reconnect target not found for ${customerId} (id ${reconnectId})`);
+            }
+            return updated;
+          })()
+        : await deps.createConnectedAccount({
+            googleCustomerId: customerId,
+            accountName: pending.accountName,
+            currencyCode: pending.currencyCode,
+            timezone: pending.timezone,
+            oauthRefreshTokenEncrypted: encryptedToken,
+            grantedScopes: pending.grantedScopes,
+          });
+
       deps.clearPendingTokens(customerId);
-      deps.logger.info({ customerId, accountName: account.accountName }, 'Connected account persisted');
+      deps.logger.info(
+        { customerId, accountName: account.accountName, reconnected: Boolean(reconnectId) },
+        reconnectId ? 'Connected account reconnected' : 'Connected account persisted'
+      );
       return account;
     })
   );

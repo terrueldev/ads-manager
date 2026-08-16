@@ -32,6 +32,16 @@ export type ControllerDependencies = Readonly<{
       id: string,
       status: ConnectedAccountStatus
     ) => Promise<DalConnectedAccount | null>;
+    readonly reconnectConnectedAccount: (
+      id: string,
+      input: Readonly<{
+        readonly accountName: string;
+        readonly currencyCode: string;
+        readonly timezone: string;
+        readonly oauthRefreshTokenEncrypted: string;
+        readonly grantedScopes: string;
+      }>
+    ) => Promise<DalConnectedAccount | null>;
   }>;
 }>;
 
@@ -100,6 +110,10 @@ export const createController = (deps: ControllerDependencies): Controller => {
     deleteConnectedAccount: dal.deleteConnectedAccount,
     updateConnectedAccountStatus: async (id, status) => {
       const account = await dal.updateConnectedAccountStatus(id, status);
+      return account ? toModelConnectedAccount(account) : null;
+    },
+    reconnectConnectedAccount: async (id, input) => {
+      const account = await dal.reconnectConnectedAccount(id, input);
       return account ? toModelConnectedAccount(account) : null;
     },
   };

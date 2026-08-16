@@ -88,10 +88,10 @@ export const handleOAuthCallback = async (
         const metadata = await deps.fetchCustomerMetadata(customerId, tokens.refreshToken);
         const existing = await deps.findConnectedAccountByCustomerId(customerId);
 
-        // Only the accounts NOT already connected are useful as pending-connection candidates —
-        // but we stash tokens for all of them anyway so re-listing (e.g. after a page refresh
-        // within the TTL) still works uniformly; connectAccounts re-checks already_connected
-        // itself before persisting.
+        // Only the accounts NOT already connected (or connected but needing reconnection, per
+        // FR6/AC6) are useful as pending-connection candidates — but we stash tokens for all of
+        // them anyway so re-listing (e.g. after a page refresh within the TTL) still works
+        // uniformly; connectAccounts re-checks status itself before persisting/reconnecting.
         deps.savePendingTokens(customerId, {
           refreshToken: tokens.refreshToken,
           grantedScopes: tokens.scope,
@@ -100,12 +100,15 @@ export const handleOAuthCallback = async (
           timezone: metadata.timezone,
         });
 
+        // A `needs_reconnect` account is reported as NOT already-connected so the frontend keeps
+        // its checkbox selectable — selecting it re-runs the OAuth flow and connectAccounts
+        // updates (rather than rejects) that existing row. See FR6/AC6.
         return {
           customerId,
           accountName: metadata.accountName,
           currencyCode: metadata.currencyCode,
           timezone: metadata.timezone,
-          alreadyConnected: existing !== null,
+          alreadyConnected: existing !== null && existing.status !== 'needs_reconnect',
         };
       })
     );

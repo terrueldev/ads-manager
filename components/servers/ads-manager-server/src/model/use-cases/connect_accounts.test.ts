@@ -85,6 +85,50 @@ describe('connectAccounts', () => {
     });
   });
 
+  describe('AC6: conta needs_reconnect é reconectada (atualizada), não rejeitada', () => {
+    it('calls reconnectConnectedAccount instead of createConnectedAccount, and clears pending tokens', async () => {
+      const createConnectedAccount = vi.fn();
+      const reconnectConnectedAccount = vi.fn().mockImplementation(async (id, input) => ({
+        id,
+        googleCustomerId: '123-456-7890',
+        accountName: input.accountName,
+        currencyCode: input.currencyCode,
+        timezone: input.timezone,
+        status: 'active',
+        connectedAt: new Date('2026-01-01T00:00:00.000Z'),
+      }));
+      const clearPendingTokens = vi.fn();
+      const deps = createMockDependencies({
+        findConnectedAccountByCustomerId: async () => ({
+          id: 'existing-needs-reconnect',
+          googleCustomerId: '123-456-7890',
+          accountName: 'Minha Loja (token velho)',
+          currencyCode: 'BRL',
+          timezone: 'America/Sao_Paulo',
+          status: 'needs_reconnect',
+          connectedAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+        getPendingTokens: () => PENDING,
+        createConnectedAccount,
+        reconnectConnectedAccount,
+        clearPendingTokens,
+      });
+
+      const result = await connectAccounts(deps, { customerIds: ['123-456-7890'] });
+
+      expect(result.success).toBe(true);
+      expect(createConnectedAccount).not.toHaveBeenCalled();
+      expect(reconnectConnectedAccount).toHaveBeenCalledWith(
+        'existing-needs-reconnect',
+        expect.objectContaining({ accountName: PENDING.accountName })
+      );
+      expect(clearPendingTokens).toHaveBeenCalledWith('123-456-7890');
+      if (result.success) {
+        expect(result.connected[0]?.status).toBe('active');
+      }
+    });
+  });
+
   describe('edge case: callback session expired/mismatched', () => {
     it('rejects with missing_pending_tokens and persists nothing when no tokens were stashed for the customer_id', async () => {
       const createConnectedAccount = vi.fn();

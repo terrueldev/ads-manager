@@ -137,7 +137,7 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 ## Implementation State
 
-- **Current Phase:** Phase 5 (Webapp — ads-manager-webapp)
+- **Current Phase:** Phase 6 (Integration & E2E Testing)
 - **Status:** in_progress
 
 ### Completed Phases
@@ -146,6 +146,7 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - [x] Phase 2: Contract — ads-manager-api
 - [x] Phase 3: Database — ads-manager-db
 - [x] Phase 4: Server — ads-manager-server
+- [x] Phase 5: Webapp — ads-manager-webapp
 - [ ] Phase 4: Server — ads-manager-server
 - [ ] Phase 5: Webapp — ads-manager-webapp
 - [ ] Phase 6: Integration & E2E Testing
@@ -187,6 +188,20 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 **Decisão de design:** handoff de tokens OAuth entre callback e `POST /accounts` é feito via store em memória chaveado por `customer_id` (não por `state`), já que o contrato OpenAPI (fixado na Phase 2) não carrega um campo de sessão — documentado em `create_oauth_session_store.ts`. Aceitável dado o modelo single-user local; não sobrevive a restart do processo.
 
 **Validação:** `npm run typecheck/lint/test -w @ads-manager/server` — todos passando (38 testes).
+
+**Phase 5:**
+- `components/webapps/ads-manager-webapp/src/pages/contas_page/` — tela "Contas": lista de contas conectadas (MVVM: model/view-model/view), tabela via TanStack Table
+- `components/webapps/ads-manager-webapp/src/pages/contas_callback_page/` — tela de seleção de contas acessíveis pós-OAuth
+- `components/webapps/ads-manager-webapp/src/components/inline_confirm/` — confirmação inline (não `window.confirm`) para desconectar
+- `components/webapps/ads-manager-webapp/src/components/ui/{checkbox,badge}.tsx` — novos primitivos shadcn-style
+- `components/webapps/ads-manager-webapp/src/services/accounts_api.ts` — cliente HTTP para os 5 endpoints
+- `components/webapps/ads-manager-webapp/src/routes/routes.tsx`, `components/sidebar/sidebar.tsx` — rotas `/contas` e `/contas/callback` + nav
+- `components/config/envs/default/config.yaml` — `googleOAuth.redirectUri` ajustado para apontar para a rota do webapp (`/contas/callback`), não para o server, já que o callback do Google é uma navegação de browser real (ver decisão de design abaixo)
+- Validação: typecheck/lint/build/testes (21 testes) do webapp — todos passando
+
+**Decisão de design (callback OAuth → seleção de contas):** o Google redireciona o browser (navegação real, não XHR) para `redirectUri`. Como `GET /oauth/google-ads/callback` no server só retorna JSON (não faz redirect), `redirectUri` aponta para a rota do webapp `/contas/callback`, que então chama esse mesmo endpoint via `fetch` para completar a troca e obter `accessible_accounts`. Nenhuma mudança de contrato ou do server foi necessária — só o valor de config.
+
+**Correção aplicada após a Phase 5 (achado do agente, corrigido nesta sessão):** contas com status `needs_reconnect` eram rejeitadas como `already_connected` ao tentar reconectar (FR6/AC6 incompleto). Corrigido: nova função DAL `reconnectConnectedAccount` (UPDATE em vez de INSERT), `handleOAuthCallback` agora reporta `needs_reconnect` como `alreadyConnected: false` (mantém selecionável), `connectAccounts` chama reconnect em vez de create para esses casos. Testes novos cobrindo o caminho de reconexão; 40 testes do server passando.
 
 ### Blockers
 

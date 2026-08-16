@@ -10,6 +10,7 @@ import {
     createConnectedAccount,
     deleteConnectedAccount,
     updateConnectedAccountStatus,
+    reconnectConnectedAccount,
 } from "../dal";
 import { createDatabase } from "./create_database";
 import { createHttpServer } from "./create_http_server";
@@ -61,6 +62,7 @@ export const createOperator = (deps: OperatorDependencies): Operator => {
         createConnectedAccount: createConnectedAccount.bind(null, { db }),
         deleteConnectedAccount: deleteConnectedAccount.bind(null, { db }),
         updateConnectedAccountStatus: updateConnectedAccountStatus.bind(null, { db }),
+        reconnectConnectedAccount: reconnectConnectedAccount.bind(null, { db }),
     };
 
     // Create controller, passing raw I/O + DAL + config

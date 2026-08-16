@@ -1,6 +1,21 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { Layout } from '@/components';
-import { HomePage } from '@/pages';
+import { HomePage, ContasPage, ContasCallbackPage } from '@/pages';
+
+// Search params Google appends when redirecting the browser back to /contas/callback (see
+// pages/contas_callback_page/contas_callback_page.tsx for the full design-decision writeup on why
+// this webapp route — not the server — is the OAuth redirect_uri target).
+type ContasCallbackSearch = Readonly<{
+  readonly code?: string;
+  readonly state?: string;
+  readonly error?: string;
+}>;
+
+const validateContasCallbackSearch = (search: Record<string, unknown>): ContasCallbackSearch => ({
+  code: typeof search.code === 'string' ? search.code : undefined,
+  state: typeof search.state === 'string' ? search.state : undefined,
+  error: typeof search.error === 'string' ? search.error : undefined,
+});
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types -- AppRouter derives via ReturnType<>; explicit annotation would be circular
 export const createAppRouter = () => {
@@ -14,7 +29,20 @@ export const createAppRouter = () => {
     component: HomePage,
   });
 
-  const routeTree = rootRoute.addChildren([homeRoute]);
+  const contasRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/contas',
+    component: ContasPage,
+  });
+
+  const contasCallbackRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/contas/callback',
+    validateSearch: validateContasCallbackSearch,
+    component: ContasCallbackPage,
+  });
+
+  const routeTree = rootRoute.addChildren([homeRoute, contasRoute, contasCallbackRoute]);
 
   return createRouter({ routeTree });
 };

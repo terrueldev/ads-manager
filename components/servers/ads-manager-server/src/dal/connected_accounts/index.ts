@@ -7,6 +7,7 @@ export { findAllConnectedAccounts } from './find_all';
 export { findConnectedAccountByCustomerId } from './find_by_customer_id';
 export { findConnectedAccountById } from './find_by_id';
 export { updateConnectedAccountStatus } from './update_status';
+export { reconnectConnectedAccount, type ReconnectConnectedAccountInput } from './reconnect';
 export { deleteConnectedAccount } from './delete';
 export type {
   ConnectedAccount,
