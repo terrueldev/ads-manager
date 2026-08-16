@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "generate-types": "openapi-typescript openapi.yaml -o generated/api-types.ts",
+    "lint": "spectral lint openapi.yaml"
+  },
   "exports": {
     ".": {
       "types": "./generated/api-types.ts",

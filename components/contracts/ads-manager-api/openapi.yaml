@@ -2,37 +2,336 @@ openapi: 3.0.3
 info:
   title: ads-manager API
   version: 1.0.0
-  description: API specification for ads-manager
+  description: >
+    API specification for ads-manager. Covers the Google Ads Connection
+    change: OAuth connection flow and CRUD over connected Google Ads
+    accounts. Single-user application — no authentication layer.
 
 servers:
   - url: /api/v1
     description: API v1
 
+tags:
+  - name: OAuth
+    description: Google OAuth connection flow for Google Ads accounts.
+  - name: Accounts
+    description: Connected Google Ads accounts.
+
 paths:
   # NOTE: Health check endpoints (/health, /readiness, /liveness) are NOT defined here.
   # They are infrastructure endpoints implemented directly in the controller.
-  #
-  # Add your API endpoints here as features are implemented.
-  # Example:
-  # /users:
-  #   post:
-  #     operationId: createUser
-  #     ...
+
+  /oauth/google-ads/start:
+    get:
+      operationId: startGoogleAdsOAuth
+      summary: Start the Google Ads OAuth connection flow
+      description: >
+        Generates and stores a CSRF-protection `state` value and returns the
+        Google OAuth consent screen URL the frontend should redirect the user
+        to.
+      tags:
+        - OAuth
+      responses:
+        '200':
+          description: Authorization URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartOAuthResponse'
+
+  /oauth/google-ads/callback:
+    get:
+      operationId: handleGoogleAdsOAuthCallback
+      summary: Handle the Google OAuth callback
+      description: >
+        Called by Google after the user completes (or denies) consent.
+        Validates the `state` parameter, exchanges the authorization `code`
+        for tokens, and lists the Google Ads accounts accessible to that
+        identity (including sub-accounts of an MCC), flagging accounts that
+        are already connected. Tokens are only persisted once the user
+        confirms a selection via `POST /accounts`.
+      tags:
+        - OAuth
+      parameters:
+        - name: code
+          in: query
+          description: Authorization code issued by Google.
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: CSRF-protection value echoed back by Google.
+          required: false
+          schema:
+            type: string
+        - name: error
+          in: query
+          description: Error code returned by Google when the user denies consent.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Accessible Google Ads accounts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthCallbackResponse'
+        '400':
+          description: Invalid OAuth state or consent denied by the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidState:
+                  summary: Missing or invalid state parameter
+                  value:
+                    error:
+                      code: INVALID_STATE
+                      message: state do OAuth ausente ou inválido
+                oauthDenied:
+                  summary: User denied OAuth consent
+                  value:
+                    error:
+                      code: OAUTH_DENIED
+                      message: Usuário negou o consentimento OAuth
+        '502':
+          description: Failed to query accessible accounts from the Google Ads API
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                googleAdsApiError:
+                  summary: Google Ads API error while listing accessible accounts
+                  value:
+                    error:
+                      code: GOOGLE_ADS_API_ERROR
+                      message: Falha ao consultar contas acessíveis na Google Ads API
+
+  /accounts:
+    get:
+      operationId: listAccounts
+      summary: List connected Google Ads accounts
+      description: >
+        Returns all currently connected Google Ads accounts with their basic
+        metadata and connection status.
+      tags:
+        - Accounts
+      responses:
+        '200':
+          description: Connected accounts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAccountsResponse'
+    post:
+      operationId: connectAccounts
+      summary: Persist the selected Google Ads accounts
+      description: >
+        Persists the accounts selected by the user after the OAuth callback,
+        storing the encrypted refresh token and account metadata for each.
+      tags:
+        - Accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectAccountsRequest'
+      responses:
+        '201':
+          description: Accounts connected successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectAccountsResponse'
+        '409':
+          description: One of the requested accounts is already connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                alreadyConnected:
+                  summary: Account already connected
+                  value:
+                    error:
+                      code: ALREADY_CONNECTED
+                      message: Esta conta já está conectada
+
+  /accounts/{id}:
+    delete:
+      operationId: disconnectAccount
+      summary: Disconnect a connected Google Ads account
+      description: >
+        Removes the account, its OAuth tokens, and associated data. No
+        further calls are made to this account after disconnection.
+      tags:
+        - Accounts
+      parameters:
+        - name: id
+          in: path
+          description: Internal id of the connected account.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Account disconnected successfully
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                accountNotFound:
+                  summary: Account not found
+                  value:
+                    error:
+                      code: ACCOUNT_NOT_FOUND
+                      message: Conta não encontrada
 
 components:
   schemas:
-    # Add your domain schemas here as entities are defined.
-    # Example:
-    # User:
-    #   type: object
-    #   required:
-    #     - id
-    #     - email
-    #   properties:
-    #     id:
-    #       type: string
-    #     email:
-    #       type: string
+    AccountStatus:
+      type: string
+      description: >
+        Lifecycle status of a connected account. `active` is usable,
+        `suspended` reflects a suspension on the Google Ads side, and
+        `needs_reconnect` means the refresh token failed and the OAuth flow
+        must be re-run for this account.
+      enum:
+        - active
+        - suspended
+        - needs_reconnect
+
+    AccessibleAccount:
+      type: object
+      description: >
+        A Google Ads account accessible to the authenticated OAuth identity,
+        as returned by the callback for user selection.
+      required:
+        - customer_id
+        - account_name
+        - currency_code
+        - timezone
+        - already_connected
+      properties:
+        customer_id:
+          type: string
+          description: Google Ads Customer ID, formatted `XXX-XXX-XXXX`.
+          example: '123-456-7890'
+        account_name:
+          type: string
+          example: Minha Loja
+        currency_code:
+          type: string
+          description: ISO 4217 currency code.
+          example: BRL
+        timezone:
+          type: string
+          description: IANA timezone identifier.
+          example: America/Sao_Paulo
+        already_connected:
+          type: boolean
+          description: True if this account is already connected and cannot be selected again.
+
+    ConnectedAccount:
+      type: object
+      description: A Google Ads account persisted by ads-manager.
+      required:
+        - id
+        - customer_id
+        - account_name
+        - currency_code
+        - timezone
+        - status
+        - connected_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Internal id of the connected account.
+        customer_id:
+          type: string
+          description: Google Ads Customer ID, formatted `XXX-XXX-XXXX`.
+          example: '123-456-7890'
+        account_name:
+          type: string
+          example: Minha Loja
+        currency_code:
+          type: string
+          description: ISO 4217 currency code.
+          example: BRL
+        timezone:
+          type: string
+          description: IANA timezone identifier.
+          example: America/Sao_Paulo
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        connected_at:
+          type: string
+          format: date-time
+          description: ISO8601 timestamp of when the account was connected.
+
+    StartOAuthResponse:
+      type: object
+      required:
+        - authorization_url
+      properties:
+        authorization_url:
+          type: string
+          format: uri
+          description: Google OAuth consent screen URL to redirect the user to.
+          example: https://accounts.google.com/o/oauth2/v2/auth?...
+
+    OAuthCallbackResponse:
+      type: object
+      required:
+        - accessible_accounts
+      properties:
+        accessible_accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessibleAccount'
+
+    ConnectAccountsRequest:
+      type: object
+      required:
+        - customer_ids
+      properties:
+        customer_ids:
+          type: array
+          description: Google Ads Customer IDs selected by the user to connect.
+          items:
+            type: string
+            example: '123-456-7890'
+          minItems: 1
+
+    ConnectAccountsResponse:
+      type: object
+      required:
+        - connected
+      properties:
+        connected:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectedAccount'
+
+    ListAccountsResponse:
+      type: object
+      required:
+        - accounts
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectedAccount'
 
     Error:
       type: object
@@ -42,51 +341,26 @@ components:
       properties:
         code:
           type: string
-          description: Error code
+          description: >
+            Machine-readable error code. One of: INVALID_STATE, OAUTH_DENIED,
+            ACCOUNT_NOT_FOUND, ALREADY_CONNECTED, GOOGLE_ADS_API_ERROR.
+          enum:
+            - INVALID_STATE
+            - OAUTH_DENIED
+            - ACCOUNT_NOT_FOUND
+            - ALREADY_CONNECTED
+            - GOOGLE_ADS_API_ERROR
         message:
           type: string
-          description: Human-readable error message
+          description: Human-readable error message.
         details:
           type: object
-          description: Additional error details
+          description: Additional error details.
 
-  responses:
-    BadRequest:
-      description: Invalid request
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                $ref: '#/components/schemas/Error'
-
-    Unauthorized:
-      description: Unauthorized
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                $ref: '#/components/schemas/Error'
-
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                $ref: '#/components/schemas/Error'
-
-    InternalError:
-      description: Internal server error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                $ref: '#/components/schemas/Error'
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'

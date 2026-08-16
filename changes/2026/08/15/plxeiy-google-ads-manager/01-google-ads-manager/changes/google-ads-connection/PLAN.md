@@ -137,13 +137,13 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 
 ## Implementation State
 
-- **Current Phase:** Phase 2 (Contract — ads-manager-api)
+- **Current Phase:** Phase 3 (Database — ads-manager-db)
 - **Status:** in_progress
 
 ### Completed Phases
 
 - [x] Phase 1: Component Scaffolding
-- [ ] Phase 2: Contract — ads-manager-api
+- [x] Phase 2: Contract — ads-manager-api
 - [ ] Phase 3: Database — ads-manager-db
 - [ ] Phase 4: Server — ads-manager-server
 - [ ] Phase 5: Webapp — ads-manager-webapp
@@ -161,6 +161,13 @@ Primeiro change implementado do projeto — todos os 5 componentes do produto s�
 - `sdd/sdd-settings.yaml` — 5 components registered
 - Root `package.json` — workspace scripts for server/webapp
 
+**Phase 2:**
+- `components/contracts/ads-manager-api/openapi.yaml` — OpenAPI 3.0.3 spec, 5 endpoints, shared error schema
+- `components/contracts/ads-manager-api/.spectral.yaml` — lint ruleset (spectral:oas), 0 errors
+- `components/contracts/ads-manager-api/package.json` — added `generate-types`/`lint` scripts
+- Fixed infra bug from Phase 1: `package.json` deps used pnpm-only `workspace:*` protocol (incompatible with npm workspaces) in `ads-manager-server` and `ads-manager-webapp`; also `ads-manager-webapp` referenced invalid package name `@ads-manager/config/types` instead of `@ads-manager/config`. Fixed both; root `npm install` now succeeds.
+- `package-lock.json` — created (852 packages)
+
 ### Blockers
 
-None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário antes de testar Phase 4 fim a fim, mas não bloqueia Phases 2-3.
+None currently. Pré-requisito de setup manual (Google Cloud + OAuth client + developer token) ainda pendente — necessário antes de testar Phase 4 fim a fim, mas não bloqueia Phase 3.

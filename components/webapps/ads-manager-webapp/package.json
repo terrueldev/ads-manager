@@ -13,8 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ads-manager/contract": "workspace:*",
-    "@ads-manager/config/types": "workspace:*",
+    "@ads-manager/contract": "*",
+    "@ads-manager/config": "*",
     "@radix-ui/react-slot": "1.2.3",
     "@tanstack/react-form": "1.28.0",
     "@tanstack/react-query": "5.90.21",
