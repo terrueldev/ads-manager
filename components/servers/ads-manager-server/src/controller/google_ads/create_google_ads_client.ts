@@ -91,13 +91,36 @@ const buildCampaignMetricsQuery = (dateRangeStart: string, dateRangeEnd: string)
 
 const VALID_CAMPAIGN_STATUSES: readonly CampaignStatus[] = ['ENABLED', 'PAUSED', 'REMOVED'];
 
+// google-ads-api (like the underlying Google Ads API GAQL search results) returns enum fields —
+// including campaign.status — as their NUMERIC code, not the human-readable name, unless the
+// query explicitly resolves enums to strings. CampaignStatusEnum.CampaignStatus is a stable part
+// of the Google Ads API surface: 0=UNSPECIFIED, 1=UNKNOWN, 2=ENABLED, 3=PAUSED, 4=REMOVED.
+// See https://developers.google.com/google-ads/api/reference/rpc/latest/CampaignStatusEnum.CampaignStatus
+const CAMPAIGN_STATUS_BY_CODE: Readonly<Record<number, CampaignStatus>> = {
+  2: 'ENABLED',
+  3: 'PAUSED',
+  4: 'REMOVED',
+};
+
 // Any campaign.status the API returns outside the 3 tracked by the cache/contract (e.g. an
 // UNKNOWN/UNSPECIFIED sentinel) falls back to PAUSED — "not actively spending, not deleted" is
 // the safer default of the three for a status the UI has no dedicated treatment for.
-const toCampaignStatus = (status: string | null | undefined): CampaignStatus =>
-  status !== null && status !== undefined && (VALID_CAMPAIGN_STATUSES as readonly string[]).includes(status)
-    ? (status as CampaignStatus)
-    : 'PAUSED';
+const toCampaignStatus = (status: string | number | null | undefined): CampaignStatus => {
+  if (typeof status === 'number') {
+    return CAMPAIGN_STATUS_BY_CODE[status] ?? 'PAUSED';
+  }
+  if (typeof status === 'string') {
+    if ((VALID_CAMPAIGN_STATUSES as readonly string[]).includes(status)) {
+      return status as CampaignStatus;
+    }
+    // Some google-ads-api configurations return the numeric code as a string (e.g. "2").
+    const parsed = Number(status);
+    if (Number.isInteger(parsed)) {
+      return CAMPAIGN_STATUS_BY_CODE[parsed] ?? 'PAUSED';
+    }
+  }
+  return 'PAUSED';
+};
 
 const toNumber = (value: string | number | null | undefined): number => {
   if (value === null || value === undefined) {
@@ -114,7 +137,7 @@ type CampaignMetricsRow = Readonly<{
   readonly campaign?: Readonly<{
     readonly id?: string | number | null;
     readonly name?: string | null;
-    readonly status?: string | null;
+    readonly status?: string | number | null;
   }> | null;
   readonly campaign_budget?: Readonly<{ readonly amount_micros?: string | number | null }> | null;
   readonly metrics?: Readonly<{

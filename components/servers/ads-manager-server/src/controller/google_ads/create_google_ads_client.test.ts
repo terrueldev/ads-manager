@@ -123,6 +123,35 @@ describe('createGoogleAdsClientAdapter', () => {
       ]);
     });
 
+    it('maps campaign.status returned as a numeric enum code (real google-ads-api behavior) to the correct string status', async () => {
+      // Regression test: google-ads-api returns campaign.status as its numeric CampaignStatusEnum
+      // code (2=ENABLED, 3=PAUSED, 4=REMOVED), not the string name — the original implementation
+      // only recognized string values and silently defaulted every numeric code to 'PAUSED',
+      // making active campaigns display as paused in the UI.
+      queryMock.mockResolvedValue([
+        {
+          campaign: { id: '111', name: 'Ativa (código numérico)', status: 2 },
+          campaign_budget: null,
+          metrics: { impressions: '0', clicks: '0', cost_micros: '0', conversions: '0', conversions_value: '0' },
+        },
+        {
+          campaign: { id: '222', name: 'Pausada (código numérico)', status: 3 },
+          campaign_budget: null,
+          metrics: { impressions: '0', clicks: '0', cost_micros: '0', conversions: '0', conversions_value: '0' },
+        },
+        {
+          campaign: { id: '333', name: 'Removida (string numérica)', status: '4' },
+          campaign_budget: null,
+          metrics: { impressions: '0', clicks: '0', cost_micros: '0', conversions: '0', conversions_value: '0' },
+        },
+      ]);
+      const adapter = createGoogleAdsClientAdapter(CONFIG);
+
+      const result = await adapter.fetchCampaignMetrics('123-456-7890', 'refresh-token', '2026-07-17', '2026-08-16');
+
+      expect(result.map((c) => c.status)).toEqual(['ENABLED', 'PAUSED', 'REMOVED']);
+    });
+
     it('wraps a GoogleAdsFailure carrying an authentication_error as GoogleAdsAuthenticationError', async () => {
       queryMock.mockRejectedValue({
         errors: [{ error_code: { authentication_error: 'OAUTH_TOKEN_INVALID' } }],
